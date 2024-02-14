@@ -1,5 +1,6 @@
 #include <entry.h>
-#include <platform/platform.h>
+
+#include <core/siren_memory.h>
 
 #include "game.h"
 
@@ -16,7 +17,7 @@ bool create_game(Game* game) {
     game->render = &game_render;
     game->on_resize = &game_on_resize;
 
-    game->state = platform_allocate(sizeof(GameState), false);
+    game->state = siren_allocate(sizeof(GameState), MEMORY_TAG_GAME);
 
     return true;
 }

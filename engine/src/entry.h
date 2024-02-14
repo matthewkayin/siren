@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/siren_memory.h"
 #include "core/application.h"
 #include "core/logger.h"
 #include "game_types.h"
@@ -7,6 +8,8 @@
 extern bool create_game(Game* game);
 
 int main() {
+    memory_init();
+
     Game game;
     if (!create_game(&game)) {
         SIREN_FATAL("Could not create game!");
@@ -27,6 +30,8 @@ int main() {
         SIREN_INFO("Application did not shutdown gracefully.")
         return 2;
     }
+
+    memory_quit();
 
     return 0;
 }

@@ -3,6 +3,9 @@
 #include "game_types.h"
 #include "platform/platform.h"
 #include "logger.h"
+#include "core/siren_memory.h"
+
+#include <cstdlib>
 
 struct ApplicationState {
     Game* game;
@@ -55,6 +58,10 @@ SIREN_API bool application_create(Game* game) {
 }
 
 SIREN_API bool application_run() {
+    char* memory_usage_str = create_memory_usage_str();
+    SIREN_INFO(memory_usage_str);
+    free(memory_usage_str);
+
     while (app_state.is_running) {
         if (!platform_pump_messages(&app_state.platform)) {
             app_state.is_running = false;

@@ -11,8 +11,8 @@ void platform_quit(PlatformState* platform_state);
 
 bool platform_pump_messages(PlatformState* platform_state);
 
-SIREN_API void* platform_allocate(uint64_t size, bool aligned);
-SIREN_API void platform_free(void* block, bool aligned);
+void* platform_allocate(uint64_t size, bool aligned);
+void platform_free(void* block, bool aligned);
 void* platform_zero_memory(void* block, uint64_t size);
 void* platform_copy_memory(void* destination, const void* source, uint64_t size);
 void* platform_set_memory(void* destination, int value, uint64_t size);
