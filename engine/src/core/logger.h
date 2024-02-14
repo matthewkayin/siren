@@ -21,6 +21,8 @@ enum LogLevel {
     LOG_LEVEL_TRACE = 5
 };
 
+bool logger_init();
+void logger_quit();
 SIREN_API void logger_output(LogLevel level, const char* message, ...);
 
 #define SIREN_FATAL(message, ...) logger_output(LOG_LEVEL_FATAL, message, ##__VA_ARGS__);

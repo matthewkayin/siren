@@ -7,6 +7,15 @@
 #include <cstring>
 #include <cstdio>
 
+bool logger_init() {
+    return true;
+}
+
+void logger_quit() {
+
+}
+
+
 void logger_output(LogLevel level, const char* message, ...) {
     const char* level_prefix[6] = {"[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: "};
     bool is_error = level < LOG_LEVEL_WARN;
