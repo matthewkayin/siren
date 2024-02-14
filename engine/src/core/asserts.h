@@ -39,8 +39,8 @@ SIREN_API void report_assertion_failure(const char* expression, const char* mess
 #define SIREN_ASSERT_DEBUG(expr)
 #endif
 
-#else
+#else // SIREN_ASSERTIONS_ENABLED
 #define SIREN_ASSERT(expr)
 #define SIREN_ASSERT_MESSAGE(expr, message)
 #define SIREN_ASSERT_DEBUG(expr)
-#endif
+#endif // SIREN_ASSERTIONS_ENABLED

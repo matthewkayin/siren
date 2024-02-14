@@ -1,12 +1,14 @@
 #pragma once
 
+#include <cstdint>
+
 // Platform detection
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
-#define SIREN_WINDOWS 1
+#define SIREN_PLATFORM_WINDOWS 1
 #ifndef _WIN64
 #error "64-bit is required on Windows!"
 #elif __APPLE__
-#define SIREN_MACOS 1
+#define SIREN_PLATFORM_MACOS 1
 #endif
 #endif
 

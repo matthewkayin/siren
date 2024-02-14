@@ -1,5 +1,6 @@
 #include <core/logger.h>
 #include <core/asserts.h>
+#include <platform/platform.h>
 
 int main() {
     SIREN_FATAL("testing %f", 3.14f);
@@ -9,7 +10,13 @@ int main() {
     SIREN_DEBUG("testing %f", 3.14f);
     SIREN_TRACE("testing %f", 3.14f);
 
-    SIREN_ASSERT(1 == 0);
+    PlatformState platform_state;
+    if (platform_init(&platform_state, "sandbox", 100, 100, 1280, 720)) {
+        while (true) {
+            platform_pump_messages(&platform_state);
+        }
+    }
+    platform_quit(&platform_state);
 
     return 0;
 }
