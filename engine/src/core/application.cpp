@@ -1,7 +1,8 @@
 #include "application.h"
 
 #include "platform/platform.h"
-#include "logger.h"
+#include "core/logger.h"
+#include "core/input.h"
 #include "core/siren_memory.h"
 
 #include <cstdlib>
@@ -30,6 +31,7 @@ SIREN_API bool siren::application_create(siren::Application* app) {
     // Init subsystems
     memory_init();
     logger_init();
+    input_init();
 
     SIREN_FATAL("testing %f", 3.14f);
     SIREN_ERROR("testing %f", 3.14f);
@@ -84,11 +86,15 @@ SIREN_API bool siren::application_run() {
                 app_state.is_running = false;
                 break;
             }
+
+            input_update();
         }
     }
 
     app_state.is_running = false;
 
+    input_quit();
+    logger_quit();
     memory_quit();
     platform_quit(&app_state.platform);
 

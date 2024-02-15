@@ -3,6 +3,7 @@
 #if SIREN_PLATFORM_WINDOWS
 
 #include "core/logger.h"
+#include "core/input.h"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -192,21 +193,21 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, uint32_t message, WPARAM w_par
         case WM_SYSKEYDOWN:
         case WM_KEYUP:
         case WM_SYSKEYUP: {
-            // bool pressed = message == WM_KEYDOWN || message == WM_SYSKEYDOWN;
-            // TODO input processing
+            bool pressed = message == WM_KEYDOWN || message == WM_SYSKEYDOWN;
+            siren::input_process_key((siren::Key)w_param, pressed);
         } break;
         case WM_MOUSEMOVE: {
-            // int x_position = GET_X_LPARAM(l_param);
-            // int y_position = GET_Y_LPARAM(l_param);
-            // TODO input processing
+            int x_position = GET_X_LPARAM(l_param);
+            int y_position = GET_Y_LPARAM(l_param);
+            siren::input_process_mouse_motion(x_position, y_position);
         } break;
         case WM_MOUSEWHEEL: {
-            // int z_delta = GET_WHEEL_DELTA_WPARAM(w_param);
-            // if (z_delta != 0) {
+            int z_delta = GET_WHEEL_DELTA_WPARAM(w_param);
+            if (z_delta != 0) {
                 // Flatten the input to an OS-independent -1 to 1
-                // z_delta = (z_delta < 0) ? -1 : 1;
-                // TODO input processing
-            // }
+                z_delta = (z_delta < 0) ? -1 : 1;
+                siren::input_process_mouse_wheel(z_delta);
+            }
         } break;
         case WM_LBUTTONDOWN:
         case WM_MBUTTONDOWN:
@@ -214,8 +215,25 @@ LRESULT CALLBACK win32_process_message(HWND hwnd, uint32_t message, WPARAM w_par
         case WM_LBUTTONUP:
         case WM_MBUTTONUP:
         case WM_RBUTTONUP: {
-            // bool pressed = message == WM_LBUTTONDOWN || message = WM_MBUTTONDOWN || message == WM_RBUTTONDOWN;
-            // TODO input processing
+            bool pressed = message == WM_LBUTTONDOWN || message == WM_MBUTTONDOWN || message == WM_RBUTTONDOWN;
+            siren::MouseButton mouse_button = siren::MOUSE_BUTTON_MAX_BUTTONS;
+            switch(message) {
+                case WM_LBUTTONDOWN:
+                case WM_LBUTTONUP:
+                    mouse_button = siren::MOUSE_BUTTON_LEFT;
+                    break;
+                case WM_MBUTTONDOWN:
+                case WM_MBUTTONUP:
+                    mouse_button = siren::MOUSE_BUTTON_MIDDLE;
+                    break;
+                case WM_RBUTTONDOWN:
+                case WM_RBUTTONUP:
+                    mouse_button = siren::MOUSE_BUTTON_RIGHT;
+                    break;
+            }
+            if (mouse_button != siren::MOUSE_BUTTON_MAX_BUTTONS) {
+                siren::input_process_mouse_button(mouse_button, pressed);
+            }
         } break;
     }
 

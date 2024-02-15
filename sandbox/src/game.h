@@ -1,6 +1,8 @@
 #pragma once
 
+#include <core/logger.h>
 #include <core/application.h>
+#include <core/input.h>
 
 struct GameState {
     float delta;

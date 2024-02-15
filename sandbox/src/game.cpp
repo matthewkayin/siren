@@ -8,6 +8,10 @@ bool game_init(void* gamestate) {
 }
 
 bool game_update(void* gamestate, float delta) {
+    if (siren::input_is_key_just_released(siren::KEY_W)) {
+        SIREN_INFO("Key released");
+    }
+
     return true;
 }
 
