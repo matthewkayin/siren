@@ -8,10 +8,10 @@
 #include <cstdlib>
 
 struct ApplicationState {
-    Game* game;
+    siren::Game* game;
     bool is_running;
     bool is_suspended;
-    PlatformState platform;
+    siren::PlatformState platform;
     int width;
     int height;
     double last_time;
@@ -20,7 +20,7 @@ struct ApplicationState {
 static bool initialized = false;
 static ApplicationState app_state;
 
-SIREN_API bool application_create(Game* game) {
+SIREN_API bool siren::application_create(Game* game) {
     if (initialized) {
         SIREN_ERROR("application_create called more than once");
         return false;
@@ -57,8 +57,8 @@ SIREN_API bool application_create(Game* game) {
     return true;
 }
 
-SIREN_API bool application_run() {
-    char* memory_usage_str = create_memory_usage_str();
+SIREN_API bool siren::application_run() {
+    char* memory_usage_str = memory_create_usage_str();
     SIREN_INFO(memory_usage_str);
     free(memory_usage_str);
 

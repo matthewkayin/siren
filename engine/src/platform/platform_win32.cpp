@@ -19,7 +19,7 @@ static LARGE_INTEGER start_time;
 
 LRESULT CALLBACK win32_process_message(HWND hwnd, uint32_t message, WPARAM w_param, LPARAM l_param);
 
-bool platform_init(PlatformState* platform_state, const char* application_name, int x, int y, int width, int height) {
+bool siren::platform_init(siren::PlatformState* platform_state, const char* application_name, int x, int y, int width, int height) {
     platform_state->internal_state = malloc(sizeof(InternalState));
     InternalState* state = (InternalState*)platform_state->internal_state;
 
@@ -90,7 +90,7 @@ bool platform_init(PlatformState* platform_state, const char* application_name, 
     return true;
 }
 
-void platform_quit(PlatformState* platform_state) {
+void siren::platform_quit(siren::PlatformState* platform_state) {
     InternalState* state = (InternalState*)platform_state->internal_state;
 
     if (state->hwnd) {
@@ -99,7 +99,7 @@ void platform_quit(PlatformState* platform_state) {
     }
 }
 
-bool platform_pump_messages(PlatformState* platform_state) {
+bool siren::platform_pump_messages(siren::PlatformState* platform_state) {
     MSG message;
     while (PeekMessageA(&message, NULL, 0, 0, PM_REMOVE)) {
         TranslateMessage(&message);
@@ -112,29 +112,29 @@ bool platform_pump_messages(PlatformState* platform_state) {
 
 /* Memory */
 
-void* platform_allocate(uint64_t size, bool aligned) {
+void* siren::platform_memory_allocate(uint64_t size, bool aligned) {
     return malloc(size);
 }
 
-void platform_free(void* block, bool aligned) {
+void siren::platform_memory_free(void* block, bool aligned) {
     free(block);
 }
 
-void* platform_zero_memory(void* block, uint64_t size) {
+void* siren::platform_memory_zero(void* block, uint64_t size) {
     return memset(block, 0, size);
 }
 
-void* platform_copy_memory(void* destination, const void* source, uint64_t size) {
+void* siren::platform_memory_copy(void* destination, const void* source, uint64_t size) {
     return memcpy(destination, source, size);
 }
 
-void* platform_set_memory(void* destination, int value, uint64_t size) {
+void* siren::platform_memory_set(void* destination, int value, uint64_t size) {
     return memset(destination, value, size);
 }
 
 /* Console Write */
 
-void platform_console_write(const char* message, uint8_t color) {
+void siren::platform_console_write(const char* message, uint8_t color) {
     HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
     // FATAL, ERROR, WARN, INFO, DEBUG, TRACE
     static uint8_t levels[6] = { 64, 4, 6, 2, 1, 8 };
@@ -145,7 +145,7 @@ void platform_console_write(const char* message, uint8_t color) {
     WriteConsoleA(GetStdHandle(STD_OUTPUT_HANDLE), message, (DWORD)length, number_written, 0);
 }
 
-void platform_console_write_error(const char* message, uint8_t color) {
+void siren::platform_console_write_error(const char* message, uint8_t color) {
     HANDLE console_handle = GetStdHandle(STD_ERROR_HANDLE);
     // FATAL, ERROR, WARN, INFO, DEBUG, TRACE
     static uint8_t levels[6] = { 64, 4, 6, 2, 1, 8 };
@@ -158,13 +158,13 @@ void platform_console_write_error(const char* message, uint8_t color) {
 
 /* Clock */
 
-double platform_get_absolute_time() {
+double siren::platform_get_absolute_time() {
     LARGE_INTEGER current_time;
     QueryPerformanceCounter(&current_time);
     return (double)current_time.QuadPart * clock_frequency;
 }
 
-void platform_sleep(uint64_t ms) {
+void siren::platform_sleep(uint64_t ms) {
     Sleep(ms);
 }
 

@@ -5,12 +5,12 @@
 #include "core/logger.h"
 #include "game_types.h"
 
-extern bool create_game(Game* game);
+extern bool create_game(siren::Game* game);
 
 int main() {
-    memory_init();
+    siren::memory_init();
 
-    Game game;
+    siren::Game game;
     if (!create_game(&game)) {
         SIREN_FATAL("Could not create game!");
         return -1;
@@ -21,17 +21,17 @@ int main() {
         return -2;
     }
 
-    if (!application_create(&game)) {
+    if (!siren::application_create(&game)) {
         SIREN_INFO("Application failed to create.");
         return 1;
     }
 
-    if (!application_run()) {
+    if (!siren::application_run()) {
         SIREN_INFO("Application did not shutdown gracefully.")
         return 2;
     }
 
-    memory_quit();
+    siren::memory_quit();
 
     return 0;
 }

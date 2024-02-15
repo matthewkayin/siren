@@ -7,16 +7,16 @@
 #include <cstring>
 #include <cstdio>
 
-bool logger_init() {
+bool siren::logger_init() {
     return true;
 }
 
-void logger_quit() {
+void siren::logger_quit() {
 
 }
 
 
-void logger_output(LogLevel level, const char* message, ...) {
+void siren::logger_output(siren::LogLevel level, const char* message, ...) {
     const char* level_prefix[6] = {"[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: "};
     bool is_error = level < LOG_LEVEL_WARN;
 
@@ -40,5 +40,5 @@ void logger_output(LogLevel level, const char* message, ...) {
 }
 
 void report_assertion_failure(const char* expression, const char* message, const char* file, int line) {
-    logger_output(LOG_LEVEL_FATAL, "Assertion failure: %s, message: '%s', in file: %s, line %d\n", expression, message, file, line);
+    siren::logger_output(siren::LOG_LEVEL_FATAL, "Assertion failure: %s, message: '%s', in file: %s, line %d\n", expression, message, file, line);
 }

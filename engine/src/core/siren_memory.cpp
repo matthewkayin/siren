@@ -8,22 +8,22 @@
 
 struct MemoryStats {
     uint64_t total_allocated;
-    uint64_t tagged_allocations[MEMORY_TAG_MAX_TAGS];
+    uint64_t tagged_allocations[siren::MEMORY_TAG_MAX_TAGS];
 };
 
-static const char* memory_tag_strings[MEMORY_TAG_MAX_TAGS] = {
+static const char* memory_tag_strings[siren::MEMORY_TAG_MAX_TAGS] = {
     "UNKNOWN    ",
     "GAME       "
 };
 static struct MemoryStats stats;
 
-void memory_init() {
-    platform_zero_memory(&stats, sizeof(stats));
+void siren::memory_init() {
+    platform_memory_zero(&stats, sizeof(stats));
 }
 
-void memory_quit() {}
+void siren::memory_quit() {}
 
-void* siren_allocate(uint64_t size, MemoryTag tag) {
+void* siren::memory_allocate(uint64_t size, siren::MemoryTag tag) {
     if (tag == MEMORY_TAG_UNKNOWN) {
         SIREN_WARN("siren_allocate called using MEMORY_TAG_UNKNOWN. Re-class this allocation.");
     }
@@ -32,13 +32,13 @@ void* siren_allocate(uint64_t size, MemoryTag tag) {
     stats.tagged_allocations[tag] += size;
 
     // TODO: memory alignment
-    void* block = platform_allocate(size, false);
-    platform_zero_memory(block, size);
+    void* block = platform_memory_allocate(size, false);
+    platform_memory_zero(block, size);
 
     return block;
 }
 
-void siren_free(void* block, uint64_t size, MemoryTag tag) {
+void siren::memory_free(void* block, uint64_t size, siren::MemoryTag tag) {
     if (tag == MEMORY_TAG_UNKNOWN) {
         SIREN_WARN("siren_free called using MEMORY_TAG_UNKNOWN. Re-class this free.");
     }
@@ -47,22 +47,22 @@ void siren_free(void* block, uint64_t size, MemoryTag tag) {
     stats.tagged_allocations[tag] -= size;
 
     // TODO: memory alignment
-    platform_free(block, false);
+    platform_memory_free(block, false);
 }
 
-void* siren_zero_memory(void* block, uint64_t size) {
-    return platform_zero_memory(block, size);
+void* siren::memory_zero(void* block, uint64_t size) {
+    return platform_memory_zero(block, size);
 }
 
-void* siren_copy_memory(void* destination, const void* source, uint64_t size) {
-    return platform_copy_memory(destination, source, size);
+void* siren::memory_copy(void* destination, const void* source, uint64_t size) {
+    return platform_memory_copy(destination, source, size);
 }
 
-void* siren_set_memory(void* destination, int value, uint64_t size) {
-    return platform_set_memory(destination, value, size);
+void* siren::memory_set(void* destination, int value, uint64_t size) {
+    return platform_memory_set(destination, value, size);
 }
 
-char* create_memory_usage_str() {
+char* siren::memory_create_usage_str() {
     const uint64_t gib = 1024 * 1024 * 1024;
     const uint64_t mib = 1024 * 1024; 
     const uint64_t kib = 1024; 

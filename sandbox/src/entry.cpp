@@ -4,8 +4,8 @@
 
 #include "game.h"
 
-bool create_game(Game* game) {
-    game->app_config = (ApplicationConfig) {
+bool create_game(siren::Game* game) {
+    game->app_config = (siren::ApplicationConfig) {
         .name = "Siren Sandbox",
         .x = 100,
         .y = 100,
@@ -17,7 +17,7 @@ bool create_game(Game* game) {
     game->render = &game_render;
     game->on_resize = &game_on_resize;
 
-    game->state = siren_allocate(sizeof(GameState), MEMORY_TAG_GAME);
+    game->state = siren::memory_allocate(sizeof(GameState), siren::MEMORY_TAG_GAME);
 
     return true;
 }
