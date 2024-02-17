@@ -13,8 +13,8 @@ REM echo "Files: " %cFilenames%
 SET assembly=siren
 SET compilerFlags=-g -shared -Wvarargs -Wall -Werror
 REM -Wall -Werror
-SET includeFlags=-Isrc -I%VULKAN_SDK%/Include
-SET linkerFlags=-luser32 -lvulkan-1 -L%VULKAN_SDK%/Lib
+SET includeFlags=-Isrc -Iinclude
+SET linkerFlags=-luser32 -Llib/windows/SDL2 -lSDL2
 SET defines=-D_DEBUG -DSIREN_EXPORT -D_CRT_SECURE_NO_WARNINGS
 
 ECHO "Building %assembly%..."

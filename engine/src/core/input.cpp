@@ -1,12 +1,15 @@
 #include "input.h"
 
-#include "core/siren_memory.h"
 #include "core/logger.h"
+
+#include <SDL2/SDL.h>
+
+#include <cstring>
 
 struct InputState {
     int mouse_x;
     int mouse_y;
-    int8_t mouse_delta_z;
+    int mouse_delta_z;
     bool key_pressed[256];
     bool mouse_button_pressed[siren::MOUSE_BUTTON_MAX_BUTTONS];
 };
@@ -20,8 +23,8 @@ void siren::input_init() {
         return;
     }
 
-    memory_zero(&input_state_current, sizeof(InputState));
-    memory_zero(&input_state_previous, sizeof(InputState));
+    memset(&input_state_current, 0, sizeof(InputState));
+    memset(&input_state_previous, 0, sizeof(InputState));
     initialized = true;
     SIREN_INFO("Input subsystem initialized.");
 }
@@ -35,7 +38,7 @@ void siren::input_update() {
         return;
     }
 
-    memory_copy(&input_state_previous, &input_state_current, sizeof(InputState));
+    memcpy(&input_state_previous, &input_state_current, sizeof(InputState));
     input_state_current.mouse_delta_z = 0;
 }
 
@@ -64,7 +67,7 @@ void siren::input_process_mouse_motion(int x, int y) {
     input_state_current.mouse_y = y;
 }
 
-void siren::input_process_mouse_wheel(int8_t delta_z) {
+void siren::input_process_mouse_wheel(int delta_z) {
     if (!initialized) {
         return;
     }

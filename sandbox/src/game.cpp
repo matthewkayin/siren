@@ -1,14 +1,14 @@
 #include "game.h"
 
-#include <core/siren_memory.h>
+#include <cstdlib>
 
 bool game_init(void* gamestate) {
-    gamestate = siren::memory_allocate(sizeof(GameState), siren::MEMORY_TAG_GAME);
+    gamestate = malloc(sizeof(GameState));
     return true;
 }
 
 bool game_update(void* gamestate, float delta) {
-    if (siren::input_is_key_just_released(siren::KEY_W)) {
+    if (siren::input_is_key_just_released(siren::KEY_w)) {
         SIREN_INFO("Key released");
     }
 
