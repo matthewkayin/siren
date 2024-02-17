@@ -27,3 +27,11 @@
 #define SIREN_API
 #endif
 #endif
+
+#ifdef _MSC_VER
+#define SIREN_INLINE __forceinline
+#define SIREN_NO_INLINE __declspec(noinline)
+#else
+#define SIREN_INLINE static inline
+#define SIREN_NO_INLINE 
+#endif

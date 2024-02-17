@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include <core/application.h>
+#include <math/siren_math.h>
 
 #include <cstdio>
 
@@ -18,6 +19,8 @@ int main() {
         printf("Application failed to create!\n");
         return -1;
     }
+    siren::vec3 test = siren::vec3::cross(siren::VEC3_UP, siren::VEC3_RIGHT);
+    SIREN_INFO("%f %f %f\n", test.x, test.y, test.z);
 
     if (!siren::application_run()) {
         printf("Application did not quit gracefully.\n");
