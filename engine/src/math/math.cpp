@@ -1,4 +1,4 @@
-#include "siren_math.h"
+#include "math.h"
 
 #include <cmath>
 #include <cstring>
@@ -36,7 +36,7 @@ SIREN_INLINE siren::mat4::mat4(const float scaler) {
 }
 
 SIREN_INLINE siren::mat4 siren::mat4::perspective(float fov, float aspect, float near_clip, float far_clip) {
-    float half_tan_fov = siren::tan(fov * 0.5f);
+    float half_tan_fov = tan(fov * 0.5f);
 
     mat4 result;
     memset(result.elements, 0, sizeof(result.elements));

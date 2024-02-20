@@ -15,6 +15,24 @@ namespace siren {
     SIREN_API float tan(float radians);
     SIREN_API float acos(float radians);
 
+    union ivec2 {
+        int elements[2];
+        struct {
+            int x;
+            int y;
+        };
+
+        SIREN_INLINE ivec2() {
+            x = 0;
+            y = 0;
+        }
+
+        SIREN_INLINE ivec2(int x, int y) {
+            this->x = x;
+            this->y = y;
+        }
+    };
+
     union vec2 {
         float elements[2];
         struct {

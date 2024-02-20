@@ -2,17 +2,14 @@
 
 #include "core/logger.h"
 #include "core/input.h"
+#include "renderer/renderer.h"
 
 #include <SDL2/SDL.h>
 
 #include <cstdlib>
 
 struct Application {
-    SDL_Window* window;
-
     bool is_running;
-    int window_width;
-    int window_height;
     double last_time;
 
     void* gamestate;
@@ -34,8 +31,6 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     }
 
     // Get info out of config
-    app.window_width = config.width;
-    app.window_height = config.height;
     app.init = config.init;
     app.update = config.update;
     app.render = config.render;
@@ -54,20 +49,11 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     // Init subsystems
     logger_init();
     input_init();
-
-    SIREN_FATAL("testing %f", 3.14f);
-    SIREN_ERROR("testing %f", 3.14f);
-    SIREN_WARN("testing %f", 3.14f);
-    SIREN_INFO("testing %f", 3.14f);
-    SIREN_DEBUG("testing %f", 3.14f);
-    SIREN_TRACE("testing %f", 3.14f);
-
-    // Create window
-    app.window = SDL_CreateWindow(config.name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, app.window_width, app.window_height, SDL_WINDOW_SHOWN);
-    if (app.window == NULL) {
-        SIREN_FATAL("Error creating window: %s", SDL_GetError());
-        return false;
-    }
+    renderer_init((RendererConfig) {
+        .window_name = config.name,
+        .screen_size = config.screen_size,
+        .window_size = config.window_size
+    });
 
     app.is_running = true;
 
@@ -114,11 +100,13 @@ SIREN_API bool siren::application_run() {
             break;
         }
 
+        renderer_prepare_frame();
         if (!app.render(app.gamestate, 0.0f)) {
             SIREN_ERROR("Game render failed. Shutting down.");
             app.is_running = false;
             break;
         }
+        renderer_present_frame();
 
         input_update();
     }
@@ -128,8 +116,8 @@ SIREN_API bool siren::application_run() {
     // Application quit
     input_quit();
     logger_quit();
+    renderer_quit();
 
-    SDL_DestroyWindow(app.window);
     SDL_Quit();
 
     return true;

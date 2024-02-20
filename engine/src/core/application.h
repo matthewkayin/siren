@@ -2,11 +2,13 @@
 
 #include "defines.h"
 
+#include "math/math.h"
+
 namespace siren {
     struct ApplicationConfig {
         const char* name;
-        int width;
-        int height;
+        siren::ivec2 screen_size;
+        siren::ivec2 window_size;
 
         bool (*init)(void* gamestate);
         bool (*update)(void* gamestate, float delta);
