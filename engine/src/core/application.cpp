@@ -2,9 +2,11 @@
 
 #include "core/logger.h"
 #include "core/input.h"
+#include "core/resource.h"
 #include "renderer/renderer.h"
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 
 #include <cstdlib>
 
@@ -46,7 +48,12 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
         SIREN_ERROR("SDL failed to initialize: %s", SDL_GetError());
     }
 
+    if (TTF_Init() == -1) {
+        SIREN_ERROR("SDL_ttf failed to initialize: %s", TTF_GetError());
+    }
+
     // Init subsystems
+    resource_set_base_path(config.resource_path);
     logger_init();
     input_init();
     renderer_init((RendererConfig) {
@@ -118,6 +125,7 @@ SIREN_API bool siren::application_run() {
     logger_quit();
     renderer_quit();
 
+    TTF_Quit();
     SDL_Quit();
 
     return true;

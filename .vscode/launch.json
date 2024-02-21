@@ -6,21 +6,14 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/sandbox.exe",
-            "args": [],
+            "args": [
+                "--resource-path",
+                "../res/"
+            ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/bin/",
+            "cwd": "${workspaceFolder}/bin",
             "environment": [],
             "console":"newExternalWindow",
-        },
-        {
-            "name": "(Linux) Launch",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/sandbox",
-            "args": [],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/bin/",
-            "environment": [],
         }
     ]
 }

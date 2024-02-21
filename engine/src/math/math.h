@@ -14,6 +14,9 @@ namespace siren {
     SIREN_API float cos(float radians);
     SIREN_API float tan(float radians);
     SIREN_API float acos(float radians);
+    SIREN_API int max(int a, int b);
+    SIREN_API int min(int a, int b);
+    SIREN_API int next_largest_power_of_two(int number);
 
     union ivec2 {
         int elements[2];

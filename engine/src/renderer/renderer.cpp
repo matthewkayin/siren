@@ -3,6 +3,7 @@
 #include "core/logger.h"
 #include "math/math.h"
 #include "renderer/shader.h"
+#include "renderer/font.h"
 
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
@@ -21,7 +22,7 @@ struct RendererState {
 
     GLuint quad_vao;
 
-    Shader screen_shader;
+    siren::Shader screen_shader;
 };
 static RendererState state;
 static bool initialized = false;
@@ -126,7 +127,7 @@ bool siren::renderer_init(RendererConfig config) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Load shaders
-    if (!shader_load(&state.screen_shader, "../res/shader/screen.vert.glsl", "../res/shader/screen.frag.glsl")) {
+    if (!shader_load(&state.screen_shader, "shader/screen.vert.glsl", "shader/screen.frag.glsl")) {
         return false;
     }
     shader_use(state.screen_shader);
@@ -134,6 +135,13 @@ bool siren::renderer_init(RendererConfig config) {
     shader_set_uniform(state.screen_shader, "screen_texture", 0);
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
+    
+    // Initialize subsystems
+    font_system_init();
+    FontId font = font_system_acquire_font("font/hack.ttf", 10);
+    FontId font2 = font_system_acquire_font("font/hack.ttf", 10);
+    FontId font3 = font_system_acquire_font("font/hack.ttf", 16);
+    SIREN_INFO("fonts: %u %u %u", font, font2, font3);
 
     initialized = true;
 
@@ -144,6 +152,9 @@ void siren::renderer_quit() {
     if (!initialized) {
         return;
     }
+
+    // Quit subsystems
+    font_system_quit();
 
     SDL_GL_DeleteContext(state.context);
     SDL_DestroyWindow(state.window);

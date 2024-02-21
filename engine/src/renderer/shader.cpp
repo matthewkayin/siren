@@ -1,6 +1,7 @@
 #include "shader.h"
 
 #include "core/logger.h"
+#include "core/resource.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -8,7 +9,11 @@
 
 #define IO_READ_CHUNK_SIZE 262144
 
-bool shader_compile(Shader* id, GLenum shader_type, const char* path) {
+bool shader_compile(siren::Shader* id, GLenum shader_type, const char* p_path) {
+    // determine full path
+    char path[128];
+    sprintf(path, "%s%s", siren::resource_get_base_path(), p_path);
+
     // open shader file
     FILE* shader_file = fopen(path, "rb");
     if (shader_file == NULL) {
@@ -79,7 +84,7 @@ bool shader_compile(Shader* id, GLenum shader_type, const char* path) {
     return true;
 }
 
-bool siren::shader_load(Shader* id, const char* vertex_path, const char* fragment_path) {
+bool siren::shader_load(siren::Shader* id, const char* vertex_path, const char* fragment_path) {
     // Compile shaders
     GLuint vertex_shader;
     if (!shader_compile(&vertex_shader, GL_VERTEX_SHADER, vertex_path)) {
@@ -111,36 +116,36 @@ bool siren::shader_load(Shader* id, const char* vertex_path, const char* fragmen
     return true;
 }
 
-void siren::shader_use(Shader id) {
+void siren::shader_use(siren::Shader id) {
     glUseProgram(id);
 }
 
 // TODO: only call getUniformLocation once somehow?
 
-void siren::shader_set_uniform(Shader id, const char* name, int value) {
+void siren::shader_set_uniform(siren::Shader id, const char* name, int value) {
     glUniform1i(glGetUniformLocation(id, name), value);
 }
 
-void siren::shader_set_uniform(Shader id, const char* name, uint32_t value) {
+void siren::shader_set_uniform(siren::Shader id, const char* name, uint32_t value) {
     glUniform1ui(glGetUniformLocation(id, name), value);
 }
 
-void siren::shader_set_uniform(Shader id, const char* name, bool value) {
+void siren::shader_set_uniform(siren::Shader id, const char* name, bool value) {
     glUniform1i(glGetUniformLocation(id, name), (int)value);
 }
 
-void siren::shader_set_uniform(Shader id, const char* name, siren::ivec2 value) {
+void siren::shader_set_uniform(siren::Shader id, const char* name, siren::ivec2 value) {
     glUniform2iv(glGetUniformLocation(id, name), 1, value.elements);
 }
 
-void siren::shader_set_uniform(Shader id, const char* name, siren::vec2 value) {
+void siren::shader_set_uniform(siren::Shader id, const char* name, siren::vec2 value) {
     glUniform2fv(glGetUniformLocation(id, name), 1, value.elements);
 }
 
-void siren::shader_set_uniform(Shader id, const char* name, siren::vec3 value) {
+void siren::shader_set_uniform(siren::Shader id, const char* name, siren::vec3 value) {
     glUniform3fv(glGetUniformLocation(id, name), 1, value.elements);
 }
 
-void siren::shader_set_uniform(Shader id, const char* name, siren::mat4 value) {
+void siren::shader_set_uniform(siren::Shader id, const char* name, siren::mat4 value) {
     glUniformMatrix4fv(glGetUniformLocation(id, name), 1, GL_FALSE, value.elements);
 }

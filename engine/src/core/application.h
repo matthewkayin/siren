@@ -10,6 +10,8 @@ namespace siren {
         siren::ivec2 screen_size;
         siren::ivec2 window_size;
 
+        const char* resource_path;
+
         bool (*init)(void* gamestate);
         bool (*update)(void* gamestate, float delta);
         bool (*render)(void* gamestate, float delta);

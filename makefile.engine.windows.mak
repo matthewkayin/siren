@@ -1,12 +1,13 @@
 DIR := $(subst /,\,${CURDIR})
 BUILD_DIR := bin
 OBJ_DIR := obj
+LIB_DIR := engine/lib/windows
 
 ASSEMBLY := engine
 EXTENSION := .dll
 COMPILER_FLAGS := -g -fdeclspec #-fPIC
 INCLUDE_FLAGS := -Iengine\src -Iengine/include
-LINKER_FLAGS := -g -shared -luser32 -Lengine/lib/windows/SDL2 -lSDL2 -L$(OBJ_DIR)\engine
+LINKER_FLAGS := -g -shared -luser32 -L$(LIB_DIR) -lSDL2 -lSDL2_ttf -L$(OBJ_DIR)\engine
 DEFINES := -D_DEBUG -DSIREN_EXPORT -D_CRT_SECURE_NO_WARNINGS
 
 # Make does not offer a recursive wildcard function, so here's one:
@@ -38,6 +39,10 @@ compile: #compile .c files
 clean: # clean build directory
 	if exist $(BUILD_DIR)\$(ASSEMBLY)$(EXTENSION) del $(BUILD_DIR)\$(ASSEMBLY)$(EXTENSION)
 	rmdir /s /q $(OBJ_DIR)\$(ASSEMBLY)
+
+.PHONY: libcopy
+libcopy: # note, not using force copy so it should only copy libs over once
+	cp -r $(LIB_DIR)\* bin
 
 $(OBJ_DIR)/%.cpp.o: %.cpp # compile .c to .c.o object
 	@echo   $<...

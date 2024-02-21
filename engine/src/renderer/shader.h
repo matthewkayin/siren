@@ -4,9 +4,9 @@
 
 #include <glad/glad.h>
 
-typedef GLuint Shader;
-
 namespace siren {
+    typedef GLuint Shader;
+
     bool shader_load(Shader* id, const char* vertex_path, const char* fragment_path);
     void shader_use(Shader id);
     void shader_set_uniform(Shader id, const char* name, int value);
