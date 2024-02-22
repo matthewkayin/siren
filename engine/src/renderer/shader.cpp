@@ -122,30 +122,30 @@ void siren::shader_use(siren::Shader id) {
 
 // TODO: only call getUniformLocation once somehow?
 
-void siren::shader_set_uniform(siren::Shader id, const char* name, int value) {
+void siren::shader_set_uniform_int(siren::Shader id, const char* name, int value) {
     glUniform1i(glGetUniformLocation(id, name), value);
 }
 
-void siren::shader_set_uniform(siren::Shader id, const char* name, uint32_t value) {
+void siren::shader_set_uniform_uint(siren::Shader id, const char* name, uint32_t value) {
     glUniform1ui(glGetUniformLocation(id, name), value);
 }
 
-void siren::shader_set_uniform(siren::Shader id, const char* name, bool value) {
+void siren::shader_set_uniform_bool(siren::Shader id, const char* name, bool value) {
     glUniform1i(glGetUniformLocation(id, name), (int)value);
 }
 
-void siren::shader_set_uniform(siren::Shader id, const char* name, siren::ivec2 value) {
+void siren::shader_set_uniform_ivec2(siren::Shader id, const char* name, siren::ivec2 value) {
     glUniform2iv(glGetUniformLocation(id, name), 1, value.elements);
 }
 
-void siren::shader_set_uniform(siren::Shader id, const char* name, siren::vec2 value) {
+void siren::shader_set_uniform_vec2(siren::Shader id, const char* name, siren::vec2 value) {
     glUniform2fv(glGetUniformLocation(id, name), 1, value.elements);
 }
 
-void siren::shader_set_uniform(siren::Shader id, const char* name, siren::vec3 value) {
+void siren::shader_set_uniform_vec3(siren::Shader id, const char* name, siren::vec3 value) {
     glUniform3fv(glGetUniformLocation(id, name), 1, value.elements);
 }
 
-void siren::shader_set_uniform(siren::Shader id, const char* name, siren::mat4 value) {
+void siren::shader_set_uniform_mat4(siren::Shader id, const char* name, siren::mat4 value) {
     glUniformMatrix4fv(glGetUniformLocation(id, name), 1, GL_FALSE, value.elements);
 }

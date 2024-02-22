@@ -13,7 +13,6 @@
 #include <cstdio>
 
 const uint16_t MAX_FONTS = 16;
-const int FIRST_CHAR = 32;
 
 struct FontSystemState {
     siren::Hashtable* fonts;
@@ -81,7 +80,7 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
     int max_width = 0;
     int max_height = 0;
     for (int i = 0; i < 96; i++) {
-        char text[2] = { (char)(i + FIRST_CHAR), '\0' };
+        char text[2] = { (char)(i + Font::FIRST_CHAR), '\0' };
         glyphs[i] = TTF_RenderText_Blended(ttf_font, text, COLOR_WHITE);
         if (glyphs[i] == NULL) {
             return nullptr;

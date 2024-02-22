@@ -62,6 +62,11 @@ namespace siren {
             this->y = y;
         }
 
+        SIREN_INLINE vec2(ivec2 value) {
+            this->x = (float)value.x;
+            this->y = (float)value.y;
+        }
+
         SIREN_INLINE bool operator==(const vec2& other) const {
             if (fabs(x - other.x) > SIREN_FLOAT_EPSILON) {
                 return false;

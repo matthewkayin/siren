@@ -4,15 +4,25 @@
 #include "core/input.h"
 #include "core/resource.h"
 #include "renderer/renderer.h"
+#include "renderer/font.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
 #include <cstdlib>
+#include <cstdio>
+
+static const uint64_t FRAME_TIME = (uint64_t)(1000.0 / 60.0);
 
 struct Application {
     bool is_running;
-    double last_time;
+    uint64_t last_time;
+    uint64_t last_second;
+    uint32_t frames;
+    uint32_t fps;
+    float delta;
+
+    siren::Font* debug_font;
 
     void* gamestate;
 
@@ -68,12 +78,19 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
         .window_size = config.window_size
     });
 
-    app.is_running = true;
+    app.debug_font = font_system_acquire_font("font/hack.ttf", 10);
 
     if (!app.init(app.gamestate)) {
         SIREN_ERROR("Application failed to initialize");
         return false;
     }
+
+    app.is_running = true;
+    app.last_time = SDL_GetTicks();
+    app.last_second = app.last_time;
+    app.frames = 0;
+    app.fps = 0;
+    app.delta = 0.0f;
 
     initialized = true;
 
@@ -82,6 +99,23 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
 
 SIREN_API bool siren::application_run() {
     while (app.is_running) {
+        // Timekeep
+        uint64_t current_time = SDL_GetTicks();
+        while (current_time - app.last_time < FRAME_TIME) {
+            current_time = SDL_GetTicks();
+        }
+
+        app.delta = (float)(current_time - app.last_time) / 1000.0f;
+        app.last_time = current_time;
+
+        if (current_time - app.last_second >= 1000) {
+            app.fps = app.frames;
+            app.frames = 0;
+            app.last_second += 1000;
+        }
+
+        app.frames++;
+
         // Poll events
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -106,6 +140,7 @@ SIREN_API bool siren::application_run() {
                     break;
             }
         }
+        input_update();
 
         if (!app.update(app.gamestate, 0.0f)) {
             SIREN_ERROR("Game update failed. Shutting down.");
@@ -119,9 +154,10 @@ SIREN_API bool siren::application_run() {
             app.is_running = false;
             break;
         }
+        char fps_text[16];
+        sprintf(fps_text, "FPS: %u", app.fps);
+        renderer_render_text(fps_text, app.debug_font, ivec2(0, 0), vec3(1.0f, 1.0f, 1.0f));
         renderer_present_frame();
-
-        input_update();
     }
 
     app.is_running = false;

@@ -21,8 +21,10 @@ struct RendererState {
     GLuint screen_intermediate_texture;
 
     GLuint quad_vao;
+    GLuint glyph_vao;
 
     siren::Shader screen_shader;
+    siren::Shader text_shader;
 };
 static RendererState state;
 static bool initialized = false;
@@ -63,15 +65,15 @@ bool siren::renderer_init(RendererConfig config) {
 
     // Setup quad VAO
     float quad_vertices[] = {
-		// positions   // texCoords
+        // positions   // texCoords
 		-1.0f,  1.0f,  0.0f, 1.0f,
 		-1.0f, -1.0f,  0.0f, 0.0f,
-		 1.0f, -1.0f,  1.0f, 0.0f,
-
+        1.0f, -1.0f,  1.0f, 0.0f,
+        
 		-1.0f,  1.0f,  0.0f, 1.0f,
-		 1.0f, -1.0f,  1.0f, 0.0f,
-		 1.0f,  1.0f,  1.0f, 1.0f
-	};
+        1.0f, -1.0f,  1.0f, 0.0f,
+        1.0f,  1.0f,  1.0f, 1.0f
+    };
 	GLuint quad_vbo;
 
 	glGenVertexArrays(1, &state.quad_vao);
@@ -82,8 +84,31 @@ bool siren::renderer_init(RendererConfig config) {
 
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glBindVertexArray(0);
+
+    // Setup glyph VAO
+    float glyph_vertices[] = {
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        0.0f, 1.0f,
+
+        0.0f, 1.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f
+    };
+    GLuint glyph_vbo;
+
+    glGenVertexArrays(1, &state.glyph_vao);
+    glGenBuffers(1, &glyph_vbo);
+    glBindVertexArray(state.glyph_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, glyph_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(glyph_vertices), &glyph_vertices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 
 	glBindVertexArray(0);
 
@@ -131,17 +156,21 @@ bool siren::renderer_init(RendererConfig config) {
         return false;
     }
     shader_use(state.screen_shader);
-    shader_set_uniform(state.screen_shader, "screen_size", state.screen_size);
-    shader_set_uniform(state.screen_shader, "screen_texture", 0);
+    shader_set_uniform_uint(state.screen_shader, "screen_texture", 0);
+
+    if (!shader_load(&state.text_shader, "shader/text.vert.glsl", "shader/text.frag.glsl")) {
+        return false;
+    }
+    shader_use(state.text_shader);
+    shader_set_uniform_vec2(state.text_shader, "screen_size", vec2(state.screen_size));
+    shader_set_uniform_uint(state.text_shader, "atlas_texture", 0);
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
     // Initialize subsystems
     font_system_init();
     Font* font = font_system_acquire_font("font/hack.ttf", 10);
-    Font* font2 = font_system_acquire_font("font/hack.ttf", 10);
-    Font* font3 = font_system_acquire_font("font/hack.ttf", 16);
-    SIREN_INFO("fonts: %p %p %p", font, font2, font3);
+    Font* font2 = font_system_acquire_font("font/hack.ttf", 16);
 
     initialized = true;
 
@@ -165,8 +194,9 @@ void siren::renderer_quit() {
 void siren::renderer_prepare_frame() {
     glBindFramebuffer(GL_FRAMEBUFFER, state.screen_framebuffer);
     glViewport(0, 0, state.screen_size.x, state.screen_size.y);
-    glBlendFunc(GL_ONE, GL_ZERO);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ZERO);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
@@ -193,4 +223,36 @@ void siren::renderer_present_frame() {
     glBindVertexArray(0);
 
     SDL_GL_SwapWindow(state.window);
+}
+
+void siren::renderer_render_text(const char* text, siren::Font* font, siren::ivec2 position, siren::vec3 color) {
+    // TODO some sort of state to prevent making this call for each text?
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    vec2 glyph_size = vec2((float)font->glyph_width, (float)font->glyph_height);
+
+    shader_use(state.text_shader);
+    shader_set_uniform_vec2(state.text_shader, "glyph_size", glyph_size);
+    shader_set_uniform_vec3(state.text_shader, "text_color", color);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, font->atlas);
+    glBindVertexArray(state.glyph_vao);
+
+    vec2 render_position = vec2((float)position.x, (float)position.y);
+    vec2 glyph_offset = vec2(0.0f, 0.0f);
+    for (const char* c = text; *c != '\0'; c++) {
+        int glyph_index = ((int)*c) - Font::FIRST_CHAR;
+        glyph_offset.x = (float)(font->glyph_width * glyph_index);
+
+        shader_set_uniform_vec2(state.text_shader, "render_position", render_position);
+        shader_set_uniform_vec2(state.text_shader, "glyph_offset", glyph_offset);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        render_position.x += font->glyph_width;
+    }
+
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }

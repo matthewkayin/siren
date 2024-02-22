@@ -11,7 +11,7 @@ siren::Hashtable* siren::hashtable_create(uint32_t element_size, uint32_t elemen
     table->element_size = element_size;
     table->element_count = element_count;
     table->data = (void*)malloc(element_size * element_count);
-    memset(table->data, 0, element_count);
+    memset(table->data, 0, element_size * element_count);
 
     return table;
 }
@@ -56,5 +56,6 @@ void siren::hashtable_set_ptr(siren::Hashtable* table, const char* key, void** v
 
 void siren::hashtable_get_ptr(siren::Hashtable* table, const char* key, void** value) {
     uint64_t hash = hash_key(key, table->element_count);
+
     *value = ((void**)table->data)[hash];
 }
