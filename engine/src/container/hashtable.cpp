@@ -47,3 +47,14 @@ void siren::hashtable_get(siren::Hashtable* table, const char* key, void* value)
 
     memcpy(value, (char*)table->data + (hash * table->element_size), table->element_size);
 }
+
+void siren::hashtable_set_ptr(siren::Hashtable* table, const char* key, void** value) {
+    uint64_t hash = hash_key(key, table->element_count);
+
+    ((void**)table->data)[hash] = *value;
+}
+
+void siren::hashtable_get_ptr(siren::Hashtable* table, const char* key, void** value) {
+    uint64_t hash = hash_key(key, table->element_count);
+    *value = ((void**)table->data)[hash];
+}

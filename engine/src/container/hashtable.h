@@ -13,4 +13,6 @@ namespace siren{
     SIREN_API void hashtable_destroy(Hashtable* table);
     SIREN_API void hashtable_set(Hashtable* table, const char* key, void* value);
     SIREN_API void hashtable_get(Hashtable* table, const char* key, void* value);
+    SIREN_API void hashtable_set_ptr(Hashtable* table, const char* key, void** value);
+    SIREN_API void hashtable_get_ptr(Hashtable* table, const char* key, void** value);
 }

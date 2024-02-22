@@ -138,10 +138,10 @@ bool siren::renderer_init(RendererConfig config) {
     
     // Initialize subsystems
     font_system_init();
-    FontId font = font_system_acquire_font("font/hack.ttf", 10);
-    FontId font2 = font_system_acquire_font("font/hack.ttf", 10);
-    FontId font3 = font_system_acquire_font("font/hack.ttf", 16);
-    SIREN_INFO("fonts: %u %u %u", font, font2, font3);
+    Font* font = font_system_acquire_font("font/hack.ttf", 10);
+    Font* font2 = font_system_acquire_font("font/hack.ttf", 10);
+    Font* font3 = font_system_acquire_font("font/hack.ttf", 16);
+    SIREN_INFO("fonts: %p %p %p", font, font2, font3);
 
     initialized = true;
 

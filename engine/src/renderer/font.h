@@ -3,10 +3,13 @@
 #include "defines.h"
 
 namespace siren{
-    typedef uint16_t FontId;
-    const FontId FONT_ID_INVALID = 65535U;
+    struct Font {
+        uint32_t atlas;
+        uint32_t glyph_width;
+        uint32_t glyph_height;
+    };
 
     void font_system_init();
     void font_system_quit();
-    FontId font_system_acquire_font(const char* path, uint16_t size);
+    Font* font_system_acquire_font(const char* path, uint16_t size);
 }
