@@ -32,6 +32,13 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
         return false;
     }
 
+    logger_init();
+
+    SIREN_TRACE("hey");
+    SIREN_INFO("hey");
+    SIREN_WARN("hey");
+    SIREN_ERROR("hey");
+
     // Get info out of config
     app.init = config.init;
     app.update = config.update;
@@ -39,7 +46,7 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
 
     // Check to make sure app config was valid
     if (!app.init || !app.update || !app.render) {
-        SIREN_FATAL("Application function pointers not assigned!");
+        SIREN_ERROR("Application function pointers not assigned!");
         return false;
     }
 
@@ -54,7 +61,6 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
 
     // Init subsystems
     resource_set_base_path(config.resource_path);
-    logger_init();
     input_init();
     renderer_init((RendererConfig) {
         .window_name = config.name,
@@ -65,7 +71,7 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     app.is_running = true;
 
     if (!app.init(app.gamestate)) {
-        SIREN_FATAL("Application failed to initialize");
+        SIREN_ERROR("Application failed to initialize");
         return false;
     }
 

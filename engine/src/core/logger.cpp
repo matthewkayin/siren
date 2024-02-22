@@ -9,18 +9,37 @@
 void logger_console_write(const char* message, uint8_t color);
 void logger_console_write_error(const char* message, uint8_t color);
 
+static FILE* logfile;
+static bool initialized = false;
+
 bool siren::logger_init() {
+    if (initialized) {
+        return true;
+    }
+
+    logfile = fopen("console.log", "w");
+    if (logfile == NULL) {
+        SIREN_ERROR("Unable to open log file for writing");
+    }
+
+    initialized = true;
+
     return true;
 }
 
 void siren::logger_quit() {
+    if (!initialized) {
+        return;
+    }
 
+    fclose(logfile);
+    initialized = false;
 }
 
 
 void siren::logger_output(siren::LogLevel level, const char* message, ...) {
-    const char* level_prefix[6] = {"[FATAL]: ", "[ERROR]: ", "[WARN]: ", "[INFO]: ", "[DEBUG]: ", "[TRACE]: "};
-    bool is_error = level < LOG_LEVEL_WARN;
+    const char* level_prefix[4] = {"[ERROR]: ", "[WARN]: ", "[INFO]: ", "[TRACE]: "};
+    bool is_error = level == LOG_LEVEL_ERROR;
 
     const int MESSAGE_LENGTH = 32000;
     char out_message[MESSAGE_LENGTH];
@@ -39,10 +58,17 @@ void siren::logger_output(siren::LogLevel level, const char* message, ...) {
     } else {
         logger_console_write(log_message, level);
     }
+
+    if (initialized) {
+        fprintf(logfile, "%s", log_message);
+        fflush(logfile);
+    } else {
+        SIREN_WARN("Called logger_output() without initializing logger. Log statement will not be written to file.");
+    }
 }
 
 void report_assertion_failure(const char* expression, const char* message, const char* file, int line) {
-    siren::logger_output(siren::LOG_LEVEL_FATAL, "Assertion failure: %s, message: '%s', in file: %s, line %d\n", expression, message, file, line);
+    siren::logger_output(siren::LOG_LEVEL_ERROR, "Assertion failure: %s, message: '%s', in file: %s, line %d\n", expression, message, file, line);
 }
 
 // Platform specific console output
@@ -53,8 +79,8 @@ void report_assertion_failure(const char* expression, const char* message, const
 
 void logger_console_write(const char* message, uint8_t color) {
     HANDLE console_handle = GetStdHandle(STD_OUTPUT_HANDLE);
-    // FATAL, ERROR, WARN, INFO, DEBUG, TRACE
-    static uint8_t levels[6] = { 64, 4, 6, 2, 1, 8 };
+    // ERROR, WARN, INFO, TRACE
+    static uint8_t levels[6] = { 4, 6, 2, 8 };
     SetConsoleTextAttribute(console_handle, levels[color]);
     OutputDebugStringA(message);
     uint64_t length = strlen(message);
@@ -64,8 +90,8 @@ void logger_console_write(const char* message, uint8_t color) {
 
 void logger_console_write_error(const char* message, uint8_t color) {
     HANDLE console_handle = GetStdHandle(STD_ERROR_HANDLE);
-    // FATAL, ERROR, WARN, INFO, DEBUG, TRACE
-    static uint8_t levels[6] = { 64, 4, 6, 2, 1, 8 };
+    // ERROR, WARN, INFO, TRACE
+    static uint8_t levels[6] = { 4, 6, 2, 8 };
     SetConsoleTextAttribute(console_handle, levels[color]);
     OutputDebugStringA(message);
     uint64_t length = strlen(message);
@@ -76,14 +102,14 @@ void logger_console_write_error(const char* message, uint8_t color) {
 #else
 
 void platform_console_write(const char* message, uint8_t color) {
-    // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
-    const char* colour_strings[] = {"0;41", "1;31", "1;33", "1;32", "1;34", "1;30"};
+    // ERROR,WARN,INFO,TRACE
+    const char* colour_strings[] = {"1;31", "1;33", "1;32", "1;30"};
     printf("\033[%sm%s\033[0m", colour_strings[colour], message);
 }
 
 void platform_console_write_error(const char* message, uint8_t color) {
-    // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
-    const char* colour_strings[] = {"0;41", "1;31", "1;33", "1;32", "1;34", "1;30"};
+    // ERROR,WARN,INFO,TRACE
+    const char* colour_strings[] = {"1;31", "1;33", "1;32", "1;30"};
     fprintf(stderr, "\033[%sm%s\033[0m", colour_strings[colour], message);
 }
 
