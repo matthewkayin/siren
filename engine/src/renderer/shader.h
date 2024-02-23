@@ -2,10 +2,8 @@
 
 #include "math/math.h"
 
-#include <glad/glad.h>
-
 namespace siren {
-    typedef GLuint Shader;
+    typedef uint32_t Shader;
 
     bool shader_load(Shader* id, const char* vertex_path, const char* fragment_path);
     void shader_use(Shader id);

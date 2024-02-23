@@ -2,6 +2,8 @@
 
 #include "defines.h"
 
+#include <cstring>
+
 #define SIREN_PI 3.14159265358979323846f
 #define SIREN_FLOAT_EPSILON 1.192092896e-07f
 #define SIREN_DEG2RAD_MULTIPLIER SIREN_PI / 180.0f
@@ -16,6 +18,7 @@ namespace siren {
     SIREN_API float acos(float radians);
     SIREN_API int max(int a, int b);
     SIREN_API int min(int a, int b);
+    SIREN_API float clampf(float n, float lower, float upper);
     SIREN_API int next_largest_power_of_two(int number);
 
     union ivec2 {
@@ -383,11 +386,18 @@ namespace siren {
     struct mat4 {
         float elements[16];
 
-        SIREN_INLINE mat4() {}
-        mat4(const float scaler);
+        static mat4 identity() {
+            mat4 _identity;
+            memset(_identity.elements, 0, sizeof(_identity.elements));
+            _identity.elements[0] = 1.0f;
+            _identity.elements[5] = 1.0f;
+            _identity.elements[10] = 1.0f;
+            _identity.elements[15] = 1.0f;
+            return _identity;
+        }
 
         SIREN_INLINE mat4 operator*(const mat4& other) const {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
 
             for (int i = 0; i < 4; i++) {
                 for (int j = 0; j < 4; j++) {
@@ -403,7 +413,7 @@ namespace siren {
         }
 
         SIREN_INLINE static mat4 orthographic(float left, float right, float bottom, float top, float near_clip, float far_clip) {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
 
             float lr = 1.0f / (left - right);
             float bt = 1.0f / (bottom - top);
@@ -419,7 +429,19 @@ namespace siren {
             return result;
         }
 
-        static mat4 perspective(float fov, float aspect, float near_clip, float far_clip);
+        static mat4 perspective(float fov, float aspect, float near_clip, float far_clip) {
+            float half_tan_fov = tan(fov * 0.5f);
+
+            mat4 result;
+            memset(result.elements, 0, sizeof(result.elements));
+            result.elements[0] = 1.0f / (aspect * half_tan_fov);
+            result.elements[5] = 1.0f / half_tan_fov;
+            result.elements[10] = -((far_clip - near_clip) / (far_clip - near_clip));
+            result.elements[11] = -1.0f;
+            result.elements[14] = -((2.0f * far_clip * near_clip) / (far_clip - near_clip));
+
+            return result;
+        }
 
         SIREN_INLINE static mat4 look_at(vec3 position, vec3 target, vec3 up) {
             mat4 result;
@@ -527,7 +549,7 @@ namespace siren {
         }
 
         SIREN_INLINE static mat4 translation(vec3 position) {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
             result.elements[12] = position.x;
             result.elements[13] = position.y;
             result.elements[14] = position.z;
@@ -535,7 +557,7 @@ namespace siren {
         }
 
         SIREN_INLINE static mat4 scale(vec3 scale) {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
             result.elements[0] = scale.x;
             result.elements[5] = scale.y;
             result.elements[10] = scale.z;
@@ -543,7 +565,7 @@ namespace siren {
         }
 
         SIREN_INLINE static mat4 euler_x(float radians) {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
             float c = cos(radians);
             float s = sin(radians);
 
@@ -556,7 +578,7 @@ namespace siren {
         }
 
         SIREN_INLINE static mat4 euler_y(float radians) {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
             float c = cos(radians);
             float s = sin(radians);
 
@@ -569,7 +591,7 @@ namespace siren {
         }
 
         SIREN_INLINE static mat4 euler_z(float radians) {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
             float c = cos(radians);
             float s = sin(radians);
 
@@ -712,7 +734,7 @@ namespace siren {
         }
 
         SIREN_INLINE mat4 to_mat4() const {
-            mat4 result = mat4(1.0f);
+            mat4 result = mat4::identity();
             quat n = normalized();
 
             result.elements[0] = 1.0f - 2.0f * n.y * n.y - 2.0f * n.z * n.z;

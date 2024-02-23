@@ -24,11 +24,9 @@ struct Application {
 
     siren::Font* debug_font;
 
-    void* gamestate;
-
-    bool (*init)(void* gamestate);
-    bool (*update)(void* gamestate, float delta);
-    bool (*render)(void* gamestate, float delta);
+    bool (*init)();
+    bool (*update)(float delta);
+    bool (*render)();
 };
 
 static bool initialized = false;
@@ -43,11 +41,6 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     }
 
     logger_init();
-
-    SIREN_TRACE("hey");
-    SIREN_INFO("hey");
-    SIREN_WARN("hey");
-    SIREN_ERROR("hey");
 
     // Get info out of config
     app.init = config.init;
@@ -80,7 +73,7 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
 
     app.debug_font = font_system_acquire_font("font/hack.ttf", 10);
 
-    if (!app.init(app.gamestate)) {
+    if (!app.init()) {
         SIREN_ERROR("Application failed to initialize");
         return false;
     }
@@ -142,21 +135,18 @@ SIREN_API bool siren::application_run() {
         }
         input_update();
 
-        if (!app.update(app.gamestate, 0.0f)) {
+        if (!app.update(app.delta)) {
             SIREN_ERROR("Game update failed. Shutting down.");
             app.is_running = false;
             break;
         }
 
         renderer_prepare_frame();
-        if (!app.render(app.gamestate, 0.0f)) {
+        if (!app.render()) {
             SIREN_ERROR("Game render failed. Shutting down.");
             app.is_running = false;
             break;
         }
-        char fps_text[16];
-        sprintf(fps_text, "FPS: %u", app.fps);
-        renderer_render_text(fps_text, app.debug_font, ivec2(0, 0), vec3(1.0f, 1.0f, 1.0f));
         renderer_present_frame();
     }
 
@@ -171,6 +161,10 @@ SIREN_API bool siren::application_run() {
     SDL_Quit();
 
     return true;
+}
+
+uint32_t siren::application_get_fps() {
+    return app.fps;
 }
 
 siren::Key input_sdlk_to_key(SDL_Keycode key) {

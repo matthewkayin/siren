@@ -13,5 +13,5 @@ namespace siren{
 
     void font_system_init();
     void font_system_quit();
-    Font* font_system_acquire_font(const char* path, uint16_t size);
+    SIREN_API Font* font_system_acquire_font(const char* path, uint16_t size);
 }

@@ -1,23 +1,33 @@
 #include "game.h"
 
-#include <cstdlib>
+#include <core/application.h>
+#include <renderer/font.h>
+#include <renderer/renderer.h>
 
-bool game_init(void* gamestate) {
-    gamestate = malloc(sizeof(GameState));
+#include <cstdio>
+
+struct GameState {
+    siren::Font* debug_font;
+};
+static GameState gamestate;
+
+using siren::ivec2;
+using siren::vec3;
+
+bool game_init() {
+    gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
+
     return true;
 }
 
-bool game_update(void* gamestate, float delta) {
-    if (siren::input_is_key_just_released(siren::KEY_w)) {
-        SIREN_INFO("Key released");
-    }
+bool game_update(float delta) {
 
     return true;
 }
 
-bool game_render(void* gamestate, float delta) {
+bool game_render() {
+    char fps_text[16];
+    sprintf(fps_text, "FPS: %u", siren::application_get_fps());
+    siren::renderer_render_text(fps_text, gamestate.debug_font, ivec2(0, 0), vec3(1.0f));
     return true;
-}
-
-void game_on_resize(void* gamestate, uint32_t width, uint32_t height) {
 }

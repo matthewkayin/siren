@@ -81,18 +81,18 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
     int max_height = 0;
     for (int i = 0; i < 96; i++) {
         char text[2] = { (char)(i + Font::FIRST_CHAR), '\0' };
-        glyphs[i] = TTF_RenderText_Blended(ttf_font, text, COLOR_WHITE);
+        glyphs[i] = TTF_RenderText_Solid(ttf_font, text, COLOR_WHITE);
         if (glyphs[i] == NULL) {
             return nullptr;
         }
 
-        max_width = siren::max(max_width, glyphs[i]->w);
-        max_height = siren::max(max_height, glyphs[i]->h);
+        max_width = max(max_width, glyphs[i]->w);
+        max_height = max(max_height, glyphs[i]->h);
     }
 
     // Render each surface glyph onto an atlas surface
-    int atlas_width = siren::next_largest_power_of_two(max_width * 96);
-    int atlas_height = siren::next_largest_power_of_two(max_height);
+    int atlas_width = next_largest_power_of_two(max_width * 96);
+    int atlas_height = next_largest_power_of_two(max_height);
     SDL_Surface* atlas_surface = SDL_CreateRGBSurface(0, atlas_width, atlas_height, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
     for (int i = 0; i < 96; i++) {
         SDL_Rect dest_rect = { max_width * i, 0, glyphs[i]->w, glyphs[i]->h };

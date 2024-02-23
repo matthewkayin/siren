@@ -17,5 +17,5 @@ namespace siren {
 
     void renderer_prepare_frame();
     void renderer_present_frame();
-    void renderer_render_text(const char* text, Font* font, ivec2 position, vec3 color);
+    SIREN_API void renderer_render_text(const char* text, Font* font, ivec2 position, vec3 color);
 }

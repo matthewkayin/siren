@@ -3,6 +3,8 @@
 #include "core/logger.h"
 #include "core/resource.h"
 
+#include <glad/glad.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

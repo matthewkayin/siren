@@ -12,11 +12,12 @@ namespace siren {
 
         const char* resource_path;
 
-        bool (*init)(void* gamestate);
-        bool (*update)(void* gamestate, float delta);
-        bool (*render)(void* gamestate, float delta);
+        bool (*init)();
+        bool (*update)(float delta);
+        bool (*render)();
     };
 
     SIREN_API bool application_create(ApplicationConfig config);
     SIREN_API bool application_run();
+    SIREN_API uint32_t application_get_fps();
 }
