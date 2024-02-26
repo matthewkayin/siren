@@ -2,7 +2,8 @@
 
 #include "defines.h"
 
-#include "math/math.h"
+#include "math/vector2.h"
+#include "math/vector3.h"
 #include "renderer/font.h"
 
 namespace siren {

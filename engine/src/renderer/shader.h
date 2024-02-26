@@ -1,6 +1,8 @@
 #pragma once
 
-#include "math/math.h"
+#include "math/vector2.h"
+#include "math/vector3.h"
+#include "math/matrix.h"
 
 namespace siren {
     typedef uint32_t Shader;

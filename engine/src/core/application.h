@@ -2,7 +2,7 @@
 
 #include "defines.h"
 
-#include "math/math.h"
+#include "math/vector2.h"
 
 namespace siren {
     struct ApplicationConfig {

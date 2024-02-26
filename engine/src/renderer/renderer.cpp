@@ -162,7 +162,7 @@ bool siren::renderer_init(RendererConfig config) {
         return false;
     }
     shader_use(state.text_shader);
-    shader_set_uniform_vec2(state.text_shader, "screen_size", vec2(state.screen_size));
+    shader_set_uniform_vec2(state.text_shader, "screen_size", vec2((float)state.screen_size.x, (float)state.screen_size.y));
     shader_set_uniform_uint(state.text_shader, "atlas_texture", 0);
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
