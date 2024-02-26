@@ -7,5 +7,5 @@ out vec2 frag_texture_coordinate;
 
 void main() {
     gl_Position = vec4(in_position.x, in_position.y, 0.0, 1.0);
-    frag_texture_coordinate = vec2(in_texture_coordinate.x, -in_texture_coordinate.y);
+    frag_texture_coordinate = vec2(in_texture_coordinate.x, in_texture_coordinate.y);
 }

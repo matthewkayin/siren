@@ -3,7 +3,6 @@
 #include "core/logger.h"
 #include "core/resource.h"
 #include "math/math.h"
-#include "container/hashtable.h"
 
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
@@ -11,24 +10,15 @@
 
 #include <cstring>
 #include <cstdio>
-
-const uint16_t MAX_FONTS = 16;
-
-struct FontSystemState {
-    siren::Hashtable* fonts;
-    uint16_t font_count;
-};
+#include <unordered_map>
 
 static bool initialized = false;
-static FontSystemState state;
+static std::unordered_map<const char*, siren::Font> fonts;
 
 void siren::font_system_init() {
     if (initialized) {
         return;
     }
-
-    state.fonts = siren::hashtable_create(sizeof(Font), MAX_FONTS);
-    state.font_count = 0;
 
     initialized = true;
 }
@@ -37,8 +27,6 @@ void siren::font_system_quit() {
     if (!initialized) {
         return;
     }
-
-    siren::hashtable_destroy(state.fonts);
 
     initialized = false;
 }
@@ -50,20 +38,13 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
     sprintf(key, "%s:%u", path, size);
 
     // Check if font has been loaded
-    Font* font;
-    siren::hashtable_get_ptr(state.fonts, key, (void**)&font);
-    if (font != nullptr) {
-        return font;
-    }
-
-    // Check that there is room for this font in the font system
-    if (state.font_count == MAX_FONTS) {
-        SIREN_ERROR("No space left to allocate a new font.");
-        return nullptr;
+    std::unordered_map<const char*, Font>::iterator it = fonts.find(key);
+    if (it != fonts.end()) {
+        return &it->second;
     }
 
     // Begin creating a new font
-    font = (Font*)malloc(sizeof(Font));
+    Font font;
 
     // Load the font
     char full_path[128];
@@ -100,19 +81,18 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
     }
 
     // Render the atlas surface onto a GL texture
-    glGenTextures(1, &font->atlas);
-    glBindTexture(GL_TEXTURE_2D, font->atlas);
+    glGenTextures(1, &font.atlas);
+    glBindTexture(GL_TEXTURE_2D, font.atlas);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlas_width, atlas_height, 0, GL_BGRA, GL_UNSIGNED_BYTE, atlas_surface->pixels);
 
     // Finish setting up FontData struct
-    font->glyph_width = (uint32_t)max_width;
-    font->glyph_height = (uint32_t)max_height;
+    font.glyph_width = (uint32_t)max_width;
+    font.glyph_height = (uint32_t)max_height;
 
     // Place the font in the hashtable
-    siren::hashtable_set_ptr(state.fonts, key, (void**)&font);
-    state.font_count++;
+    fonts.insert(std::pair<const char*, Font>(key, font));
 
     // Cleanup
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -122,5 +102,5 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
     SDL_FreeSurface(atlas_surface);
     TTF_CloseFont(ttf_font);
 
-    return font;
+    return &fonts.find(key)->second;
 }

@@ -22,9 +22,11 @@ struct RendererState {
 
     GLuint quad_vao;
     GLuint glyph_vao;
+    GLuint triangle_vao;
 
     siren::Shader screen_shader;
     siren::Shader text_shader;
+    siren::Shader phong_shader;
 };
 static RendererState state;
 static bool initialized = false;
@@ -112,6 +114,24 @@ bool siren::renderer_init(RendererConfig config) {
 
 	glBindVertexArray(0);
 
+    float triangle_vertices[] = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.0f,  0.5f, 0.0f
+    }; 
+    GLuint triangle_vbo;
+
+    glGenVertexArrays(1, &state.triangle_vao);
+    glGenBuffers(1, &triangle_vbo);
+    glBindVertexArray(state.triangle_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, triangle_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), &triangle_vertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindVertexArray(0);
+
     // Setup framebuffer
     glGenFramebuffers(1, &state.screen_framebuffer);
 	glBindFramebuffer(GL_FRAMEBUFFER, state.screen_framebuffer);
@@ -165,6 +185,10 @@ bool siren::renderer_init(RendererConfig config) {
     shader_set_uniform_vec2(state.text_shader, "screen_size", vec2((float)state.screen_size.x, (float)state.screen_size.y));
     shader_set_uniform_uint(state.text_shader, "atlas_texture", 0);
 
+    if (!shader_load(&state.phong_shader, "shader/phong.vert.glsl", "shader/phong.frag.glsl")) {
+        return false;
+    }
+
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
     // Initialize subsystems
@@ -199,6 +223,11 @@ void siren::renderer_prepare_frame() {
     glBlendFunc(GL_ONE, GL_ZERO);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    shader_use(state.phong_shader);
+    glBindVertexArray(state.triangle_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glBindVertexArray(0);
 }
 
 void siren::renderer_present_frame() {
