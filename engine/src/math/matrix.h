@@ -199,7 +199,7 @@ namespace siren {
             return result;
         }
 
-        SIREN_INLINE static mat4 translation(vec3 position) {
+        SIREN_INLINE static mat4 translate(vec3 position) {
             mat4 result = mat4::identity();
             result.elements[12] = position.x;
             result.elements[13] = position.y;
@@ -215,47 +215,33 @@ namespace siren {
             return result;
         }
 
-        SIREN_INLINE static mat4 euler_x(float radians) {
+        SIREN_INLINE static mat4 rotate(vec3 euler_angles) {
             mat4 result = mat4::identity();
-            float c = cos(radians);
-            float s = sin(radians);
+            float cos_x = cos(euler_angles.x);
+            float sin_x = sin(euler_angles.x);
 
-            result.elements[5] = c;
-            result.elements[6] = s;
-            result.elements[9] = -s;
-            result.elements[10] = c;
+            result.elements[5] = cos_x;
+            result.elements[6] = sin_x;
+            result.elements[9] = -sin_x;
+            result.elements[10] = cos_x;
+
+            float cos_y = cos(euler_angles.y);
+            float sin_y = sin(euler_angles.y);
+
+            result.elements[0] = cos_y;
+            result.elements[2] = -sin_y;
+            result.elements[8] = sin_y;
+            result.elements[10] = cos_y;
+
+            float cos_z = cos(euler_angles.z);
+            float sin_z = sin(euler_angles.z);
+
+            result.elements[0] = cos_z;
+            result.elements[1] = sin_z;
+            result.elements[4] = -sin_z;
+            result.elements[5] = cos_z;
 
             return result;
-        }
-
-        SIREN_INLINE static mat4 euler_y(float radians) {
-            mat4 result = mat4::identity();
-            float c = cos(radians);
-            float s = sin(radians);
-
-            result.elements[0] = c;
-            result.elements[2] = -s;
-            result.elements[8] = s;
-            result.elements[10] = c;
-
-            return result;
-        }
-
-        SIREN_INLINE static mat4 euler_z(float radians) {
-            mat4 result = mat4::identity();
-            float c = cos(radians);
-            float s = sin(radians);
-
-            result.elements[0] = c;
-            result.elements[1] = s;
-            result.elements[4] = -s;
-            result.elements[5] = c;
-
-            return result;
-        }
-
-        SIREN_INLINE static mat4 euler_xyz(float x_radians, float y_radians, float z_radians) {
-            return (euler_x(x_radians) * euler_y(y_radians)) * euler_z(z_radians);
         }
 
         SIREN_INLINE vec3 forward() const {
