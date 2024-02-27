@@ -136,6 +136,10 @@ void siren::shader_set_uniform_bool(siren::Shader id, const char* name, bool val
     glUniform1i(glGetUniformLocation(id, name), (int)value);
 }
 
+void siren::shader_set_uniform_float(siren::Shader id, const char* name, float value) {
+    glUniform1f(glGetUniformLocation(id, name), value);
+}
+
 void siren::shader_set_uniform_ivec2(siren::Shader id, const char* name, siren::ivec2 value) {
     glUniform2iv(glGetUniformLocation(id, name), 1, value.elements);
 }

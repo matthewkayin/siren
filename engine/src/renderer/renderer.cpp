@@ -275,7 +275,12 @@ void siren::renderer_prepare_frame() {
     shader_use(state.phong_shader);
     shader_set_uniform_mat4(state.phong_shader, "projection", projection);
     shader_set_uniform_mat4(state.phong_shader, "view", view);
+    shader_set_uniform_vec3(state.phong_shader, "view_position", vec3(0.0f));
     shader_set_uniform_mat4(state.phong_shader, "model", model);
+    shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, -8.0f));
+    shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
+    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.22f);
+    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.20f);
     glBindVertexArray(state.cube_vao);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
