@@ -113,6 +113,9 @@ namespace siren {
 
         SIREN_INLINE vec4 normalized() const {
             float _length = length();
+            if (_length == 0.0f) {
+                return vec4(0.0f);
+            }
             return vec4(x / _length, y / _length, z / _length, w / _length);
         }
     }; // end union vec4

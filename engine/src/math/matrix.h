@@ -61,7 +61,7 @@ namespace siren {
             memset(result.elements, 0, sizeof(result.elements));
             result.elements[0] = 1.0f / (aspect * half_tan_fov);
             result.elements[5] = 1.0f / half_tan_fov;
-            result.elements[10] = -((far_clip - near_clip) / (far_clip - near_clip));
+            result.elements[10] = -((far_clip + near_clip) / (far_clip - near_clip));
             result.elements[11] = -1.0f;
             result.elements[14] = -((2.0f * far_clip * near_clip) / (far_clip - near_clip));
 
@@ -265,7 +265,7 @@ namespace siren {
         }
 
         SIREN_INLINE vec3 right() const {
-            return vec3(-elements[0], -elements[4], -elements[8]).normalized();
+            return vec3(elements[0], elements[4], elements[8]).normalized();
         }
     };
 }

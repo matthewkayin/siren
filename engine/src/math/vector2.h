@@ -21,6 +21,14 @@ namespace siren {
             this->x = x;
             this->y = y;
         }
+
+        ivec2 operator+(const ivec2& other) {
+            return ivec2(x + other.x, y + other.y);
+        }
+
+        ivec2 operator-(const ivec2& other) {
+            return ivec2(x - other.x, y - other.y);
+        }
     };
 
     union vec2 {
@@ -105,6 +113,9 @@ namespace siren {
 
         SIREN_INLINE vec2 normalized() const {
             float _length = length();
+            if (_length == 0.0f) {
+                return vec2(0.0f);
+            }
             return vec2(x / _length, y / _length);
         }
 

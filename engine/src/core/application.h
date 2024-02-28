@@ -17,7 +17,15 @@ namespace siren {
         bool (*render)();
     };
 
+    enum MouseMode {
+        MOUSE_MODE_VISIBLE,
+        MOUSE_MODE_RELATIVE
+    };
+
     SIREN_API bool application_create(ApplicationConfig config);
     SIREN_API bool application_run();
     SIREN_API uint32_t application_get_fps();
+
+    SIREN_API MouseMode application_get_mouse_mode();
+    SIREN_API void application_set_mouse_mode(MouseMode mouse_mode);
 }

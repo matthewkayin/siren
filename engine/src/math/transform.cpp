@@ -69,9 +69,9 @@ siren::mat4 siren::Transform::get_matrix_local() {
     if (is_dirty) {
         mat4 _scale = mat4::scale(scale);
         mat4 _rotation = rotation.to_mat4();
-        mat4 _translation = mat4::translation(position);
+        mat4 _translation = mat4::translate(position);
         mat4 _rot_trans = _rotation * _translation;
-        local = mat4::scale(scale) * (rotation.to_mat4() * mat4::translation(position)); 
+        local = mat4::scale(scale) * (rotation.to_mat4() * mat4::translate(position)); 
         quat _normal = rotation.normalized();
         is_dirty = false;
     }

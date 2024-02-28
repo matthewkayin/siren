@@ -101,6 +101,9 @@ namespace siren {
 
         SIREN_INLINE vec3 normalized() const {
             float _length = length();
+            if (_length == 0.0f) {
+                return vec3(0.0f);
+            }
             return vec3(x / _length, y / _length, z / _length);
         }
 

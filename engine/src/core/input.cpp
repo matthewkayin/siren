@@ -7,24 +7,26 @@
 #include <cstring>
 
 struct InputState {
-    int mouse_x;
-    int mouse_y;
+    siren::ivec2 mouse_position;
+    siren::ivec2 mouse_relative_position;
     int mouse_delta_z;
-    bool key_pressed[256];
-    bool mouse_button_pressed[siren::MOUSE_BUTTON_MAX_BUTTONS];
+
+    bool key_pressed_current[256];
+    bool key_pressed_previous[256];
+    bool mouse_button_pressed_current[siren::MOUSE_BUTTON_MAX_BUTTONS];
+    bool mouse_button_pressed_previous[siren::MOUSE_BUTTON_MAX_BUTTONS];
 };
 
 static bool initialized = false;
-static InputState input_state_current;
-static InputState input_state_previous;
+static InputState input_state;
 
 void siren::input_init() {
     if (initialized) {
         return;
     }
 
-    memset(&input_state_current, 0, sizeof(InputState));
-    memset(&input_state_previous, 0, sizeof(InputState));
+    memset(&input_state, 0, sizeof(InputState));
+
     initialized = true;
     SIREN_INFO("Input subsystem initialized.");
 }
@@ -38,8 +40,11 @@ void siren::input_update() {
         return;
     }
 
-    memcpy(&input_state_previous, &input_state_current, sizeof(InputState));
-    input_state_current.mouse_delta_z = 0;
+    input_state.mouse_relative_position = ivec2();
+    input_state.mouse_delta_z = 0;
+
+    memcpy(&input_state.key_pressed_previous, &input_state.key_pressed_current, sizeof(bool) * 256);
+    memcpy(&input_state.mouse_button_pressed_previous, &input_state.mouse_button_pressed_current, sizeof(bool) * siren::MOUSE_BUTTON_MAX_BUTTONS);
 }
 
 void siren::input_process_key(Key key, bool pressed) {
@@ -47,7 +52,7 @@ void siren::input_process_key(Key key, bool pressed) {
         return;
     }
 
-    input_state_current.key_pressed[key] = pressed;
+    input_state.key_pressed_current[key] = pressed;
 }
 
 void siren::input_process_mouse_button(MouseButton button, bool pressed) {
@@ -55,16 +60,16 @@ void siren::input_process_mouse_button(MouseButton button, bool pressed) {
         return;
     }
 
-    input_state_current.mouse_button_pressed[button] = pressed;
+    input_state.mouse_button_pressed_current[button] = pressed;
 }
 
-void siren::input_process_mouse_motion(int x, int y) {
+void siren::input_process_mouse_motion(ivec2 mouse_position, ivec2 mouse_relative_position) {
     if (!initialized) {
         return;
     }
 
-    input_state_current.mouse_x = x;
-    input_state_current.mouse_y = y;
+    input_state.mouse_position = mouse_position;
+    input_state.mouse_relative_position = mouse_relative_position;
 }
 
 void siren::input_process_mouse_wheel(int delta_z) {
@@ -72,7 +77,7 @@ void siren::input_process_mouse_wheel(int delta_z) {
         return;
     }
 
-    input_state_current.mouse_delta_z = delta_z;
+    input_state.mouse_delta_z = delta_z;
 }
 
 bool siren::input_is_key_pressed(Key key) {
@@ -80,7 +85,7 @@ bool siren::input_is_key_pressed(Key key) {
         return false;
     }
 
-    return input_state_current.key_pressed[key];
+    return input_state.key_pressed_current[key];
 }
 
 bool siren::input_is_key_just_pressed(Key key) {
@@ -88,7 +93,7 @@ bool siren::input_is_key_just_pressed(Key key) {
         return false;
     }
 
-    return input_state_current.key_pressed[key] && !input_state_previous.key_pressed[key];
+    return input_state.key_pressed_current[key] && !input_state.key_pressed_previous[key];
 }
 
 bool siren::input_is_key_just_released(Key key) {
@@ -96,7 +101,7 @@ bool siren::input_is_key_just_released(Key key) {
         return false;
     }
 
-    return !input_state_current.key_pressed[key] && input_state_previous.key_pressed[key];
+    return !input_state.key_pressed_current[key] && input_state.key_pressed_previous[key];
 }
 
 bool siren::input_is_mouse_button_pressed(MouseButton button) {
@@ -104,7 +109,7 @@ bool siren::input_is_mouse_button_pressed(MouseButton button) {
         return false;
     }
 
-    return input_state_current.mouse_button_pressed[button];
+    return input_state.mouse_button_pressed_current[button];
 }
 
 bool siren::input_is_mouse_button_just_pressed(MouseButton button) {
@@ -112,7 +117,7 @@ bool siren::input_is_mouse_button_just_pressed(MouseButton button) {
         return false;
     }
 
-    return input_state_current.mouse_button_pressed[button] && !input_state_previous.mouse_button_pressed[button];
+    return input_state.mouse_button_pressed_current[button] && !input_state.mouse_button_pressed_previous[button];
 }
 
 bool siren::input_is_mouse_button_just_released(MouseButton button) {
@@ -120,31 +125,29 @@ bool siren::input_is_mouse_button_just_released(MouseButton button) {
         return false;
     }
 
-    return !input_state_current.mouse_button_pressed[button] && input_state_previous.mouse_button_pressed[button];
+    return !input_state.mouse_button_pressed_current[button] && input_state.mouse_button_pressed_previous[button];
 }
 
-void siren::input_get_mouse_position(int* x, int* y) {
+siren::ivec2 siren::input_get_mouse_position() {
     if (!initialized) {
-        return;
+        return ivec2();
     }
 
-    *x = (int)input_state_current.mouse_x;
-    *y = (int)input_state_current.mouse_y;
+    return input_state.mouse_position;
 }
 
-void siren::input_get_mouse_relative_position(int* x, int *y) {
+siren::ivec2 siren::input_get_mouse_relative_position() {
     if (!initialized) {
-        return;
+        return ivec2();
     }
 
-    *x = (int)(input_state_current.mouse_x - input_state_previous.mouse_x);
-    *y = (int)(input_state_current.mouse_y - input_state_previous.mouse_y);
+    return input_state.mouse_relative_position;
 }
 
-void siren::input_get_mouse_wheel_relative_position(int* delta_z) {
+int siren::input_get_mouse_wheel_relative_position() {
     if (!initialized) {
-        return;
+        return 0;
     }
 
-    *delta_z = (int)input_state_current.mouse_delta_z;
+    return input_state.mouse_delta_z;
 }
