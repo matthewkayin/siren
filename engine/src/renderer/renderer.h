@@ -6,6 +6,7 @@
 #include "math/vector3.h"
 #include "renderer/font.h"
 #include "renderer/camera.h"
+#include "renderer/texture.h"
 
 namespace siren {
     struct RendererConfig {
@@ -20,5 +21,5 @@ namespace siren {
     void renderer_prepare_frame();
     void renderer_present_frame();
     SIREN_API void renderer_render_text(const char* text, Font* font, ivec2 position, vec3 color);
-    SIREN_API void renderer_render_cube(Camera* camera);
+    SIREN_API void renderer_render_cube(Camera* camera, Texture texture);
 }

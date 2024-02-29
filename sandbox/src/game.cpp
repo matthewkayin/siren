@@ -6,12 +6,14 @@
 #include <renderer/font.h>
 #include <renderer/renderer.h>
 #include <renderer/camera.h>
+#include <renderer/texture.h>
 
 #include <cstdio>
 
 struct GameState {
     siren::Font* debug_font;
     siren::Camera camera;
+    siren::Texture texture;
 };
 static GameState gamestate;
 
@@ -21,6 +23,7 @@ using siren::vec3;
 bool game_init() {
     gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
+    gamestate.texture = siren::texture_load("texture/wall.jpg");
 
     return true;
 }
@@ -68,7 +71,7 @@ bool game_update(float delta) {
 }
 
 bool game_render() {
-    siren::renderer_render_cube(&gamestate.camera);
+    siren::renderer_render_cube(&gamestate.camera, gamestate.texture);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());

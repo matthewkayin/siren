@@ -6,6 +6,7 @@ layout (location = 2) in vec2 texture_coordinate;
 
 out vec3 frag_position;
 out vec3 frag_normal;
+out vec2 frag_texture_coordinate;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -17,4 +18,5 @@ void main() {
     frag_position = vec3(model * vec4(vertex_position, 1.0));
     // TODO pre-calc this before the shader
     frag_normal = normalize(mat3(transpose(inverse(model))) * normal);
+    frag_texture_coordinate = texture_coordinate;
 }
