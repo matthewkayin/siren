@@ -14,7 +14,7 @@ namespace siren {
          * Returns the front facing direction of the camera.
          * Note that if you have changed the pitch or yaw, then this value may be out of date. 
          */
-        SIREN_API vec3 get_direction() const;
+        SIREN_API vec3 get_forward() const;
         SIREN_API vec3 get_up() const;
         SIREN_API vec3 get_right() const;
         SIREN_API void look_at(vec3 point);
@@ -33,7 +33,7 @@ namespace siren {
         SIREN_API mat4 get_view_matrix();
     private:
         vec3 position;
-        vec3 direction;
+        vec3 forward;
         vec3 up;
         float pitch;
         float yaw;

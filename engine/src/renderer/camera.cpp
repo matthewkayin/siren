@@ -2,7 +2,7 @@
 
 siren::Camera::Camera() {
     position = vec3(0.0f);
-    direction = vec3(0.0f, 0.0f, -1.0f);
+    forward = vec3(0.0f, 0.0f, -1.0f);
     up = vec3(0.0f, 1.0f, 0.0f);
     pitch = 0.0f;
     yaw = -90.0f;
@@ -24,8 +24,8 @@ void siren::Camera::set_position(vec3 value) {
     dirty = true;
 }
 
-siren::vec3 siren::Camera::get_direction() const {
-    return direction;
+siren::vec3 siren::Camera::get_forward() const {
+    return forward;
 }
 
 siren::vec3 siren::Camera::get_up() const {
@@ -37,7 +37,7 @@ siren::vec3 siren::Camera::get_right() const {
 }
 
 void siren::Camera::look_at(vec3 point) {
-    direction = position.direction_to(point);
+    forward = position.direction_to(point);
     dirty = true;
 }
 
@@ -57,12 +57,12 @@ siren::mat4 siren::Camera::get_view_matrix() {
         float yaw_radians = deg_to_rad(yaw);
         float pitch_radians = deg_to_rad(pitch);
 
-        direction = vec3(
+        forward = vec3(
             cos(yaw_radians) * cos(pitch_radians),
             sin(pitch_radians),
             sin(yaw_radians) * cos(pitch_radians)
         ).normalized();
-        view_matrix = mat4::look_at(position, position + direction, up);
+        view_matrix = mat4::look_at(position, position + forward, up);
 
         dirty = false;
     }

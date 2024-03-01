@@ -2,6 +2,11 @@
 
 #include "asserts.h"
 
+#include "math/vector2.h"
+#include "math/vector3.h"
+#include "math/vector4.h"
+#include "math/matrix.h"
+
 #include <cstdarg>
 #include <cstring>
 #include <cstdio>
@@ -36,8 +41,10 @@ void siren::logger_quit() {
     initialized = false;
 }
 
-
 void siren::logger_output(siren::LogLevel level, const char* message, ...) {
+    static char decimal_representation[] = "0123456789";
+    static char convert_buffer[50];
+
     const char* level_prefix[4] = {"[ERROR]: ", "[WARN]: ", "[INFO]: ", "[TRACE]: "};
     bool is_error = level == LOG_LEVEL_ERROR;
 
@@ -47,7 +54,89 @@ void siren::logger_output(siren::LogLevel level, const char* message, ...) {
 
     __builtin_va_list arg_ptr;
     va_start(arg_ptr, message);
-    vsnprintf(out_message, MESSAGE_LENGTH, message, arg_ptr);
+    char* out_ptr = out_message;
+    while (*message != '\0') {
+        if (*message != '%') {
+            *out_ptr = *message;
+            out_ptr++;
+            message++;
+            continue;
+        }
+
+        message++;
+        if (*message == '\0') {
+            break;
+        }
+
+        switch (*message) {
+            case 'c': {
+                out_ptr += sprintf(out_ptr, "%c", (char)va_arg(arg_ptr, int));
+                break;
+            }
+            case 's': {
+                out_ptr += sprintf(out_ptr, "%s", va_arg(arg_ptr, char*));
+                break;
+            }
+            case 'i': {
+                out_ptr += sprintf(out_ptr, "%i", va_arg(arg_ptr, int));
+                break;
+            }
+            case 'u': {
+                out_ptr += sprintf(out_ptr, "%u", va_arg(arg_ptr, unsigned int));
+                break;
+            }
+            case 'f': {
+                out_ptr += sprintf(out_ptr, "%f", va_arg(arg_ptr, double));
+                break;
+            }
+            case 'v': {
+                message++;
+                if (*message == '\0') {
+                    break;
+                }
+                switch (*message) {
+                    case '2': {
+                        if (*(message + 1) == 'i') {
+                            ivec2* v = va_arg(arg_ptr, ivec2*);
+                            out_ptr += sprintf(out_ptr, "<%i, %i>", v->x, v->y);
+                            break;
+                        } else {
+                            vec2* v = va_arg(arg_ptr, vec2*);
+                            out_ptr += sprintf(out_ptr, "<%f, %f>", v->x, v->y);
+                            break;
+                        }
+                    }
+                    case '3': {
+                        vec3* v = va_arg(arg_ptr, vec3*);
+                        out_ptr += sprintf(out_ptr, "<%f, %f, %f>", v->x, v->y, v->z);
+                        break;
+                    }
+                    case '4': {
+                        vec4* v = va_arg(arg_ptr, vec4*);
+                        out_ptr += sprintf(out_ptr, "<%f, %f, %f, %f>", v->x, v->y, v->z, v->w);
+                        break;
+                    }
+                }
+            } // end case v
+            case 'm': {
+                message++;
+                if (*message == '\0') {
+                    break;
+                }
+                switch (*message) {
+                    case '4': {
+                        mat4* m = va_arg(arg_ptr, mat4*);
+                        for (int i = 0; i < 4; i++) {
+                            out_ptr += sprintf(out_ptr, "[%f %f %f %f]\n", m->elements[(i * 4) + 0], m->elements[(i * 4) + 1], m->elements[(i * 4) + 2], m->elements[(i * 4) + 3]);
+                        }
+                    }
+                }
+            }
+        }
+
+        message++;
+    }
+    // vsnprintf(out_message, MESSAGE_LENGTH, message, arg_ptr);
     va_end(arg_ptr);
 
     char log_message[MESSAGE_LENGTH];

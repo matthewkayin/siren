@@ -233,7 +233,11 @@ bool siren::renderer_init(RendererConfig config) {
     if (!shader_load(&state.phong_shader, "shader/phong.vert.glsl", "shader/phong.frag.glsl")) {
         return false;
     }
+    vec2 test = vec2(3, 5);
+    SIREN_INFO("testing %v2", &test);
     mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
+    SIREN_INFO("projection:\n%m4", &projection);
+    /*
     char projection_string[512];
     memset(projection_string, 0, sizeof(projection_string));
     printf("aspect: %f projection: \n", (float)state.screen_size.x / (float)state.screen_size.y);
@@ -243,6 +247,7 @@ bool siren::renderer_init(RendererConfig config) {
         }
         printf("\n");
     }
+    */
     shader_use(state.phong_shader);
     shader_set_uniform_mat4(state.phong_shader, "projection", projection);
 

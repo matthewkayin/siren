@@ -6,6 +6,7 @@
 #include "vector3.h"
 
 #include <cstring>
+#include <cstdio>
 
 namespace siren {
     struct mat4 {
@@ -266,6 +267,17 @@ namespace siren {
 
         SIREN_INLINE vec3 right() const {
             return vec3(elements[0], elements[4], elements[8]).normalized();
+        }
+
+        SIREN_INLINE void to_string(char* buffer, size_t buffer_size) const {
+            for (int i = 0; i < 4; i++) {
+                sprintf(buffer, "[%f %f %f %f]", 
+                elements[(i * 4) + 0],
+                elements[(i * 4) + 1],
+                elements[(i * 4) + 2],
+                elements[(i * 4) + 3]
+                );
+            }
         }
     };
 }

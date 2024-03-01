@@ -39,10 +39,10 @@ bool game_update(float delta) {
     if (should_handle_input) {
         vec3 camera_direction = vec3(0.0f);
         if (siren::input_is_key_pressed(siren::KEY_w)) {
-            camera_direction += gamestate.camera.get_direction();
+            camera_direction += gamestate.camera.get_forward();
         }
         if (siren::input_is_key_pressed(siren::KEY_s)) {
-            camera_direction -= gamestate.camera.get_direction();
+            camera_direction -= gamestate.camera.get_forward();
         }
         if (siren::input_is_key_pressed(siren::KEY_a)) {
             camera_direction -= gamestate.camera.get_right();
