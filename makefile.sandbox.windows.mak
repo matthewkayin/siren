@@ -5,7 +5,7 @@ OBJ_DIR := obj
 ASSEMBLY := sandbox
 EXTENSION := .exe
 COMPILER_FLAGS := -g -Wno-missing-braces -fdeclspec #-fPIC
-INCLUDE_FLAGS := -Iengine\src -Isandbox\src 
+INCLUDE_FLAGS := -Iengine\include -Iengine\src -Isandbox\src 
 LINKER_FLAGS := -g -lengine.lib -L$(OBJ_DIR)\engine -L$(BUILD_DIR) #-Wl,-rpath,.
 DEFINES := -D_DEBUG -DSIREN_IMPORT
 

@@ -3,21 +3,22 @@
 #include "defines.h"
 #include "math/vector3.h"
 #include "math/matrix.h"
+#include <glm/glm.hpp>
 
 namespace siren {
     class Camera {
     public:
         SIREN_API Camera();
-        SIREN_API vec3 get_position() const;
-        SIREN_API void set_position(vec3 value);
+        SIREN_API glm::vec3 get_position() const;
+        SIREN_API void set_position(glm::vec3 value);
         /*
          * Returns the front facing direction of the camera.
          * Note that if you have changed the pitch or yaw, then this value may be out of date. 
          */
-        SIREN_API vec3 get_forward() const;
-        SIREN_API vec3 get_up() const;
-        SIREN_API vec3 get_right() const;
-        SIREN_API void look_at(vec3 point);
+        SIREN_API glm::vec3 get_forward() const;
+        SIREN_API glm::vec3 get_up() const;
+        SIREN_API glm::vec3 get_right() const;
+        SIREN_API void look_at(glm::vec3 point);
         SIREN_API void apply_pitch(float value);
         SIREN_API void apply_yaw(float value);
 
@@ -30,15 +31,15 @@ namespace siren {
          * Returns the view matrix of the camera.
          * This will recalculate the matrix if the camera's values have changed.
          */
-        SIREN_API mat4 get_view_matrix();
+        SIREN_API glm::mat4 get_view_matrix();
     private:
-        vec3 position;
-        vec3 forward;
-        vec3 up;
+        glm::vec3 position;
+        glm::vec3 forward;
+        glm::vec3 up;
         float pitch;
         float yaw;
 
         bool dirty;
-        mat4 view_matrix;
+        glm::mat4 view_matrix;
     };
 }

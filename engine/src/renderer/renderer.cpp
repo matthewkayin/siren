@@ -8,6 +8,10 @@
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 struct RendererState {
     SDL_Window* window;
     SDL_GLContext context;
@@ -31,7 +35,6 @@ struct RendererState {
 static RendererState state;
 static bool initialized = false;
 
-#include <cstdio>
 bool siren::renderer_init(RendererConfig config) {
     if (initialized) {
         return false;
@@ -235,21 +238,11 @@ bool siren::renderer_init(RendererConfig config) {
     }
     vec2 test = vec2(3, 5);
     SIREN_INFO("testing %v2", &test);
-    mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
     SIREN_INFO("projection:\n%m4", &projection);
-    /*
-    char projection_string[512];
-    memset(projection_string, 0, sizeof(projection_string));
-    printf("aspect: %f projection: \n", (float)state.screen_size.x / (float)state.screen_size.y);
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            printf("%f ", projection.elements[(i * 4) + j]);
-        }
-        printf("\n");
-    }
-    */
     shader_use(state.phong_shader);
-    shader_set_uniform_mat4(state.phong_shader, "projection", projection);
+    // shader_set_uniform_mat4(state.phong_shader, "projection", projection);
+    glUniformMatrix4fv(glGetUniformLocation(state.phong_shader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
@@ -344,18 +337,24 @@ void siren::renderer_render_text(const char* text, siren::Font* font, siren::ive
 }
 
 void siren::renderer_render_cube(siren::Camera* camera, siren::Texture texture) {
-    mat4 model = mat4::rotate(vec3(0.0f, deg_to_rad(45.0f), 0.0f)) * mat4::translate(vec3(-1.0f, 0.0f, -10.0f));
+    // mat4 model = mat4::rotate(vec3(0.0f, deg_to_rad(45.0f), 0.0f)) * mat4::translate(vec3(-1.0f, 0.0f, -10.0f));
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -10.0f));
 
     shader_use(state.phong_shader);
 
     if (camera->is_dirty()) {
-        mat4 view = camera->get_view_matrix();
-        shader_set_uniform_mat4(state.phong_shader, "view", view);
-        shader_set_uniform_vec3(state.phong_shader, "view_position", camera->get_position());
+        glm::mat4 view = camera->get_view_matrix();
+        glm::vec3 camera_position = camera->get_position();
+        glUniformMatrix4fv(glGetUniformLocation(state.phong_shader, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniform3fv(glGetUniformLocation(state.phong_shader, "view_position"), 1, glm::value_ptr(camera_position));
+        // shader_set_uniform_mat4(state.phong_shader, "view", view);
+        // shader_set_uniform_vec3(state.phong_shader, "view_position", camera->get_position());
     }
 
     shader_set_uniform_int(state.phong_shader, "u_texture", 0);
-    shader_set_uniform_mat4(state.phong_shader, "model", model);
+    // shader_set_uniform_mat4(state.phong_shader, "model", model);
+    glUniformMatrix4fv(glGetUniformLocation(state.phong_shader, "model"), 1, GL_FALSE, glm::value_ptr(model));
     shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, -8.0f));
     shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
     shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.22f);

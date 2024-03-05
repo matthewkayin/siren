@@ -18,7 +18,7 @@ struct GameState {
 static GameState gamestate;
 
 using siren::ivec2;
-using siren::vec3;
+using glm::vec3;
 
 bool game_init() {
     gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
@@ -57,9 +57,12 @@ bool game_update(float delta) {
             camera_direction -= gamestate.camera.get_up();
         }
 
-        camera_direction = camera_direction.normalized();
+        if (glm::length(camera_direction) != 0.0f) {
+            camera_direction = glm::normalize(camera_direction);
+        }
         vec3 camera_position = gamestate.camera.get_position();
         camera_position += camera_direction * 10.0f * delta;
+        SIREN_INFO("%f %f %f", camera_direction.x, camera_direction.y, camera_direction.z);
         gamestate.camera.set_position(camera_position);
 
         ivec2 mouse_rel = siren::input_get_mouse_relative_position();
@@ -75,6 +78,6 @@ bool game_render() {
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());
-    siren::renderer_render_text(fps_text, gamestate.debug_font, ivec2(0, 0), vec3(1.0f));
+    siren::renderer_render_text(fps_text, gamestate.debug_font, ivec2(0, 0), siren::vec3(1.0f));
     return true;
 }
