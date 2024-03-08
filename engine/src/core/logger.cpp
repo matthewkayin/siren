@@ -24,7 +24,7 @@ bool siren::logger_init() {
 
     logfile = fopen("console.log", "w");
     if (logfile == NULL) {
-        SIREN_ERROR("Unable to open log file for writing");
+        SIREN_LOG_ERROR("Unable to open log file for writing");
     }
 
     initialized = true;
@@ -152,7 +152,7 @@ void siren::logger_output(siren::LogLevel level, const char* message, ...) {
         fprintf(logfile, "%s", log_message);
         fflush(logfile);
     } else {
-        SIREN_WARN("Called logger_output() without initializing logger. Log statement will not be written to file.");
+        SIREN_LOG_WARN("Called logger_output() without initializing logger. Log statement will not be written to file.");
     }
 }
 

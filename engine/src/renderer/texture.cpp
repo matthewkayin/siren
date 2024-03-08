@@ -19,7 +19,7 @@ siren::Texture siren::texture_load(const char* _path) {
     int number_of_components;
     stbi_uc* data = stbi_load(path, &width, &height, &number_of_components, 0);
     if (!data) {
-        SIREN_ERROR("Could not load texture %s", path);
+        SIREN_LOG_ERROR("Could not load texture %s", path);
         return 0;
     }
 
@@ -31,7 +31,7 @@ siren::Texture siren::texture_load(const char* _path) {
     } else if (number_of_components == 4) {
         texture_format = GL_RGBA;
     } else {
-        SIREN_ERROR("Texture format of texture %s not recognized.", path);
+        SIREN_LOG_ERROR("Texture format of texture %s not recognized.", path);
     }
 
     uint32_t texture;

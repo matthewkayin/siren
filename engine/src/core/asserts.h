@@ -2,9 +2,7 @@
 
 #include "defines.h"
 
-#define SIREN_ASSERTIONS_ENABLED
-
-#ifdef SIREN_ASSERTIONS_ENABLED
+#ifdef SIREN_DEBUG
 #if _MSC_VER
 #include <intrin.h>
 #define debug_break() __debugbreak()
@@ -28,19 +26,7 @@ SIREN_API void report_assertion_failure(const char* expression, const char* mess
     }                                                                 \
 }                                                                
 
-#ifdef _DEBUG
-#define SIREN_ASSERT_DEBUG(expr) {                               \
-    if (expr) { } else {                                         \
-        report_assertion_failure(#expr, "", __FILE__, __LINE__); \
-        debug_break();                                           \
-    }                                                            \
-}                                                                
-#else
-#define SIREN_ASSERT_DEBUG(expr)
-#endif
-
 #else // SIREN_ASSERTIONS_ENABLED
 #define SIREN_ASSERT(expr)
 #define SIREN_ASSERT_MESSAGE(expr, message)
-#define SIREN_ASSERT_DEBUG(expr)
 #endif // SIREN_ASSERTIONS_ENABLED

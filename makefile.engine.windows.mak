@@ -8,7 +8,7 @@ EXTENSION := .dll
 COMPILER_FLAGS := -g -fdeclspec #-fPIC
 INCLUDE_FLAGS := -Iengine\src -Iengine/include
 LINKER_FLAGS := -g -shared -luser32 -L$(LIB_DIR) -lSDL2 -lSDL2_ttf -L$(OBJ_DIR)\engine
-DEFINES := -DSIREN_EXPORT -D_CRT_SECURE_NO_WARNINGS
+DEFINES := -DSIREN_DEBUG -DSIREN_EXPORT -D_CRT_SECURE_NO_WARNINGS
 
 # Make does not offer a recursive wildcard function, so here's one:
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
@@ -29,7 +29,7 @@ scaffold: # create build directory
 .PHONY: link
 link: scaffold $(OBJ_FILES) # link
 	@echo Linking $(ASSEMBLY)...
-	@clang $(OBJ_FILES) -o $(BUILD_DIR)\$(ASSEMBLY)$(EXTENSION) $(LINKER_FLAGS)
+	@clang++ $(OBJ_FILES) -o $(BUILD_DIR)\$(ASSEMBLY)$(EXTENSION) $(LINKER_FLAGS)
 
 .PHONY: compile
 compile: #compile .c files
@@ -42,7 +42,8 @@ clean: # clean build directory
 
 .PHONY: libcopy
 libcopy: # note, not using force copy so it should only copy libs over once
-	cp -r $(LIB_DIR)\* bin
+	@echo Copying libaries...
+	cp -r engine/lib/windows/* bin
 
 $(OBJ_DIR)/%.cpp.o: %.cpp # compile .c to .c.o object
 	@echo   $<...

@@ -7,7 +7,7 @@ EXTENSION := .exe
 COMPILER_FLAGS := -g -Wno-missing-braces -fdeclspec #-fPIC
 INCLUDE_FLAGS := -Iengine\include -Iengine\src -Isandbox\src 
 LINKER_FLAGS := -g -lengine.lib -L$(OBJ_DIR)\engine -L$(BUILD_DIR) #-Wl,-rpath,.
-DEFINES := -D_DEBUG -DSIREN_IMPORT
+DEFINES := -DSIREN_DEBUG -DSIREN_IMPORT
 
 # Make does not offer a recursive wildcard function, so here's one:
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
@@ -27,7 +27,7 @@ scaffold: # create build directory
 .PHONY: link
 link: scaffold $(OBJ_FILES) # link
 	@echo Linking $(ASSEMBLY)...
-	@clang $(OBJ_FILES) -o $(BUILD_DIR)/$(ASSEMBLY)$(EXTENSION) $(LINKER_FLAGS)
+	@clang++ $(OBJ_FILES) -o $(BUILD_DIR)/$(ASSEMBLY)$(EXTENSION) $(LINKER_FLAGS)
 
 .PHONY: compile
 compile: #compile .c files

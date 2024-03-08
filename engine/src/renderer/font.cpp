@@ -52,7 +52,7 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
 
     TTF_Font* ttf_font = TTF_OpenFont(full_path, size);
     if (ttf_font == NULL) {
-        SIREN_ERROR("Unable to open font at path %s. SDL Error: %s", path, TTF_GetError());
+        SIREN_LOG_ERROR("Unable to open font at path %s. SDL Error: %s", path, TTF_GetError());
         return nullptr;
     }
 

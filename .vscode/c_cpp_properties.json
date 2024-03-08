@@ -7,7 +7,7 @@
                 "${workspaceFolder}/engine/include/**"
             ],
             "defines": [
-                "_DEBUG",
+                "SIREN_DEBUG",
                 "UNICODE",
                 "_UNICODE",
                 "SIREN_EXPORT"
