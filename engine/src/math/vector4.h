@@ -43,6 +43,14 @@ namespace siren {
             this->w = w;
         }
 
+        SIREN_INLINE float& operator[](uint32_t index) {
+            return elements[index];
+        }
+
+        SIREN_INLINE const float& operator[](uint32_t index) const {
+            return elements[index];
+        }
+
         SIREN_INLINE bool operator==(const vec4& other) const {
             if (fabs(x - other.x) > SIREN_FLOAT_EPSILON) {
                 return false;

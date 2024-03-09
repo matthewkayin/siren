@@ -127,7 +127,7 @@ void siren::logger_output(siren::LogLevel level, const char* message, ...) {
                     case '4': {
                         mat4* m = va_arg(arg_ptr, mat4*);
                         for (int i = 0; i < 4; i++) {
-                            out_ptr += sprintf(out_ptr, "[%f %f %f %f]\n", m->elements[(i * 4) + 0], m->elements[(i * 4) + 1], m->elements[(i * 4) + 2], m->elements[(i * 4) + 3]);
+                            out_ptr += sprintf(out_ptr, "[%f, %f, %f, %f]\n", m[0][i], m[1][i], m[2][i], m[3][i]);
                         }
                     }
                 }

@@ -153,5 +153,5 @@ void siren::shader_set_uniform_vec3(siren::Shader id, const char* name, siren::v
 }
 
 void siren::shader_set_uniform_mat4(siren::Shader id, const char* name, siren::mat4 value) {
-    glUniformMatrix4fv(glGetUniformLocation(id, name), 1, GL_FALSE, value.elements);
+    glUniformMatrix4fv(glGetUniformLocation(id, name), 1, GL_FALSE, &value[0][0]);
 }

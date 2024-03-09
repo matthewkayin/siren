@@ -15,13 +15,7 @@
 static const uint64_t FRAME_TIME = (uint64_t)(1000.0 / 60.0);
 
 struct Application {
-    bool is_running;
-    uint64_t last_time;
-    uint64_t last_second;
-    uint32_t frames;
     uint32_t fps;
-    float delta;
-
     siren::MouseMode mouse_mode;
 
     siren::Font* debug_font;
@@ -36,6 +30,7 @@ static Application app;
 
 siren::Key input_sdlk_to_key(SDL_Keycode key);
 
+#include "math/math_test.h"
 SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     if (initialized) {
         SIREN_LOG_ERROR("application_create called more than once");
@@ -43,6 +38,7 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     }
 
     logger_init();
+    run_math_tests();
 
     // Get info out of config
     app.init = config.init;
@@ -80,13 +76,6 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
         return false;
     }
 
-    app.is_running = true;
-    app.last_time = SDL_GetTicks();
-    app.last_second = app.last_time;
-    app.frames = 0;
-    app.fps = 0;
-    app.delta = 0.0f;
-
     app.mouse_mode = MOUSE_MODE_VISIBLE;
 
     initialized = true;
@@ -95,23 +84,29 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
 }
 
 SIREN_API bool siren::application_run() {
-    while (app.is_running) {
+    bool is_running = true;
+    uint64_t last_time = SDL_GetTicks();
+    uint64_t last_second = last_time;
+    uint32_t frames = 0;
+    float delta = 0.0f;
+
+    while (is_running) {
         // Timekeep
         uint64_t current_time = SDL_GetTicks();
-        while (current_time - app.last_time < FRAME_TIME) {
+        while (current_time - last_time < FRAME_TIME) {
             current_time = SDL_GetTicks();
         }
 
-        app.delta = (float)(current_time - app.last_time) / 1000.0f;
-        app.last_time = current_time;
+        delta = (float)(current_time - last_time) / 1000.0f;
+        last_time = current_time;
 
-        if (current_time - app.last_second >= 1000) {
-            app.fps = app.frames;
-            app.frames = 0;
-            app.last_second += 1000;
+        if (current_time - last_second >= 1000) {
+            app.fps = frames;
+            frames = 0;
+            last_second += 1000;
         }
 
-        app.frames++;
+        frames++;
 
         // Poll events
         input_update();
@@ -119,7 +114,7 @@ SIREN_API bool siren::application_run() {
         while (SDL_PollEvent(&e)) {
             switch (e.type) {
                 case SDL_QUIT:
-                    app.is_running = false;
+                    is_running = false;
                     break;
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
@@ -139,22 +134,22 @@ SIREN_API bool siren::application_run() {
             }
         }
 
-        if (!app.update(app.delta)) {
+        if (!app.update(delta)) {
             SIREN_LOG_ERROR("Game update failed. Shutting down.");
-            app.is_running = false;
+            is_running = false;
             break;
         }
 
         renderer_prepare_frame();
         if (!app.render()) {
             SIREN_LOG_ERROR("Game render failed. Shutting down.");
-            app.is_running = false;
+            is_running = false;
             break;
         }
         renderer_present_frame();
     }
 
-    app.is_running = false;
+    is_running = false;
 
     // Application quit
     input_quit();

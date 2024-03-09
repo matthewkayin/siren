@@ -18,7 +18,7 @@ struct GameState {
 static GameState gamestate;
 
 using siren::ivec2;
-using glm::vec3;
+using siren::vec3;
 
 bool game_init() {
     gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
@@ -57,9 +57,7 @@ bool game_update(float delta) {
             camera_direction -= gamestate.camera.get_up();
         }
 
-        if (glm::length(camera_direction) != 0.0f) {
-            camera_direction = glm::normalize(camera_direction);
-        }
+        camera_direction = camera_direction.normalized();
         vec3 camera_position = gamestate.camera.get_position();
         camera_position += camera_direction * 10.0f * delta;
         SIREN_LOG_INFO("%f %f %f", camera_direction.x, camera_direction.y, camera_direction.z);
