@@ -1,7 +1,5 @@
 #include "camera.h"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 siren::Camera::Camera() {
     position = vec3(0.0f);
     forward = vec3(0.0f, 0.0f, -1.0f);

@@ -60,7 +60,6 @@ bool game_update(float delta) {
         camera_direction = camera_direction.normalized();
         vec3 camera_position = gamestate.camera.get_position();
         camera_position += camera_direction * 10.0f * delta;
-        SIREN_LOG_INFO("%f %f %f", camera_direction.x, camera_direction.y, camera_direction.z);
         gamestate.camera.set_position(camera_position);
 
         ivec2 mouse_rel = siren::input_get_mouse_relative_position();

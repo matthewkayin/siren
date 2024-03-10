@@ -30,7 +30,6 @@ static Application app;
 
 siren::Key input_sdlk_to_key(SDL_Keycode key);
 
-#include "math/math_test.h"
 SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     if (initialized) {
         SIREN_LOG_ERROR("application_create called more than once");
@@ -38,7 +37,6 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     }
 
     logger_init();
-    run_math_tests();
 
     // Get info out of config
     app.init = config.init;

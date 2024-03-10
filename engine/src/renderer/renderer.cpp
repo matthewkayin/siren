@@ -8,10 +8,6 @@
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 struct RendererState {
     SDL_Window* window;
     SDL_GLContext context;
@@ -236,13 +232,10 @@ bool siren::renderer_init(RendererConfig config) {
     if (!shader_load(&state.phong_shader, "shader/phong.vert.glsl", "shader/phong.frag.glsl")) {
         return false;
     }
-    vec2 test = vec2(3, 5);
-    SIREN_LOG_INFO("testing %v2", &test);
-    glm::mat4 projection = glm::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
+    mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
     SIREN_LOG_INFO("projection:\n%m4", &projection);
     shader_use(state.phong_shader);
-    // shader_set_uniform_mat4(state.phong_shader, "projection", projection);
-    glUniformMatrix4fv(glGetUniformLocation(state.phong_shader, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+    shader_set_uniform_mat4(state.phong_shader, "projection", projection);
 
     SIREN_LOG_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
