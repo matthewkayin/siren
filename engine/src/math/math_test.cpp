@@ -23,7 +23,7 @@ void log_matrices(siren::mat4 siren_mat4, glm::mat4 glm_mat4) {
 void math_test_evaluate(siren::mat4 siren_mat4, glm::mat4 glm_mat4, const char* test_name) {
     for (uint32_t col = 0; col < 4; col++) {
         for (uint32_t row = 0; row < 4; row++) {
-            if (siren_mat4[col][row] != glm_mat4[col][row]) {
+            if (abs(siren_mat4[col][row] - glm_mat4[col][row]) > SIREN_FLOAT_EPSILON) {
                 SIREN_LOG_INFO("MATH TEST %s... Failed!", test_name);
                 log_matrices(siren_mat4, glm_mat4);
                 return;
@@ -92,10 +92,33 @@ void math_test_lookat() {
     math_test_evaluate(s, g, "Matrix look at");
 }
 
+void math_test_transform() {
+    siren::mat4 st = siren::mat4::translate(siren::vec3(1.0f, 2.0f, 3.0f));
+    glm::mat4 gt = glm::mat4(1.0f);
+    gt = glm::translate(gt, glm::vec3(1.0f, 2.0f, 3.0f));
+    math_test_evaluate(st, gt, "Matrix translate");
+
+    float angle = siren::deg_to_rad(45.0f);
+    siren::mat4 sr = siren::mat4::rotate(angle, siren::vec3(1.0f, 1.0f, 1.0f).normalized());
+    glm::mat4 gr = glm::mat4(1.0f);
+    gr = glm::rotate(gr, angle, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f)));
+    math_test_evaluate(sr, gr, "Matrix rotate");
+
+    siren::mat4 ss = siren::mat4::scale(siren::vec3(1.5f, 2.0f, 0.5f));
+    glm::mat4 gs = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 2.0f, 0.5f));
+    math_test_evaluate(ss, gs, "Matrix scale");
+
+    siren::mat4 sx = st * sr * ss;
+    glm::mat4 gx = glm::rotate(gt, angle, glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f)));
+    gx = glm::scale(gx, glm::vec3(1.5f, 2.0f, 0.5f));
+    math_test_evaluate(sx, gx, "Matrix transform");
+}
+
 void run_math_tests() {
     math_test_identity();
     math_test_multiply();
     math_test_ortho();
     math_test_perspective();
     math_test_lookat();
+    math_test_transform();
 }

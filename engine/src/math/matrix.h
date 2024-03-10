@@ -101,6 +101,33 @@ namespace siren {
             return result;
         }
 
+        SIREN_INLINE static mat4 rotate(float angle, vec3 axis) {
+            float cos_theta = cos(angle);
+            float sin_theta = sin(angle);
+
+            mat4 result(1.0f);
+            result[0][0] = cos_theta + ((axis.x * axis.x) * (1 - cos_theta));
+            result[0][1] = (axis.y * axis.x * (1 - cos_theta)) + (axis.z * sin_theta);
+            result[0][2] = (axis.z * axis.x * (1 - cos_theta)) - (axis.y * sin_theta);
+            result[1][0] = (axis.x * axis.y * (1 - cos_theta)) - (axis.z * sin_theta);
+            result[1][1] = cos_theta + (axis.y * axis.y * (1 - cos_theta));
+            result[1][2] = (axis.z * axis.y * (1 - cos_theta)) + (axis.x * sin_theta);
+            result[2][0] = (axis.x * axis.z * (1 - cos_theta)) + (axis.y * sin_theta);
+            result[2][1] = (axis.y * axis.z * (1 - cos_theta)) - (axis.x * sin_theta);
+            result[2][2] = cos_theta + (axis.x * axis.x * (1 - cos_theta));
+
+            return result;
+        }
+
+        SIREN_INLINE static mat4 scale(vec3 value) {
+            mat4 result(1.0f);
+            result[0][0] = value.x;
+            result[1][1] = value.y;
+            result[2][2] = value.z;
+
+            return result;
+        }
+
         /*
         SIREN_INLINE mat4 transposed() const {
             mat4 result;
