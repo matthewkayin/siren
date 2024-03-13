@@ -7,6 +7,7 @@
 #include <renderer/renderer.h>
 #include <renderer/camera.h>
 #include <renderer/texture.h>
+#include <renderer/model.h>
 
 #include <cstdio>
 
@@ -14,6 +15,9 @@ struct GameState {
     siren::Font* debug_font;
     siren::Camera camera;
     siren::Texture texture;
+    siren::Model model;
+    siren::Transform cube_transform;
+    siren::Transform cube_transform2;
 };
 static GameState gamestate;
 
@@ -24,6 +28,18 @@ bool game_init() {
     gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
     gamestate.texture = siren::texture_load("texture/wall.jpg");
+    // siren::model_load(&gamestate.model, "model/turret/TripodBot_Turret.obj");
+    gamestate.cube_transform = (siren::Transform) {
+        .position = siren::vec3(-2.0f, 0.0f, -2.0f),
+        .rotation = siren::vec3(0.0f),
+        .scale = siren::vec3(1.0f)
+    };
+    gamestate.cube_transform2 = (siren::Transform) {
+        .position = siren::vec3(2.0f, 0.0f, -2.0f),
+        .rotation = siren::vec3(0.0f),
+        .scale = siren::vec3(0.5f)
+    };
+
 
     return true;
 }
@@ -67,11 +83,16 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
+    // gamestate.cube_transform2.rotation.z += 100.0f * delta;
+    gamestate.cube_transform2.rotation.x += 100.0f * delta;
+
     return true;
 }
 
 bool game_render() {
-    siren::renderer_render_cube(&gamestate.camera, gamestate.texture);
+    // siren::renderer_render_model(&gamestate.camera, &gamestate.model);
+    siren::renderer_render_cube(&gamestate.camera, gamestate.cube_transform, gamestate.texture);
+    siren::renderer_render_cube(&gamestate.camera, gamestate.cube_transform2, gamestate.texture);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());

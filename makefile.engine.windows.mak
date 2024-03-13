@@ -7,7 +7,7 @@ ASSEMBLY := engine
 EXTENSION := .dll
 COMPILER_FLAGS := -g -fdeclspec #-fPIC
 INCLUDE_FLAGS := -Iengine\src -Iengine/include
-LINKER_FLAGS := -g -shared -luser32 -L$(LIB_DIR) -lSDL2 -lSDL2_ttf -L$(OBJ_DIR)\engine
+LINKER_FLAGS := -g -shared -luser32 -L$(LIB_DIR) -lSDL2 -lSDL2_ttf -lassimp-vc143-mtd -L$(OBJ_DIR)\engine
 DEFINES := -DSIREN_DEBUG -DSIREN_EXPORT -D_CRT_SECURE_NO_WARNINGS
 
 # Make does not offer a recursive wildcard function, so here's one:

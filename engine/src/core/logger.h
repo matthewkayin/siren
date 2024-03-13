@@ -34,7 +34,7 @@ namespace siren {
 #endif
 
 #if SIREN_LOG_LEVEL >= 3
-#define SIREN_LOG_DEBUG(message, ...) logger_output(siren::LOG_LEVEL_TRACE, message, ##__VA_ARGS__);
+#define SIREN_LOG_DEBUG(message, ...) logger_output(siren::LOG_LEVEL_DEBUG, message, ##__VA_ARGS__);
 #else
 #define SIREN_LOG_DEBUG(message, ...)
 #endif

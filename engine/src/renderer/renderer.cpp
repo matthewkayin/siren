@@ -329,9 +329,10 @@ void siren::renderer_render_text(const char* text, siren::Font* font, siren::ive
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void siren::renderer_render_cube(siren::Camera* camera, siren::Texture texture) {
+void siren::renderer_render_cube(siren::Camera* camera, siren::Transform& transform, siren::Texture texture) {
     // mat4 model = mat4::rotate(vec3(0.0f, deg_to_rad(45.0f), 0.0f)) * mat4::translate(vec3(-1.0f, 0.0f, -10.0f));
-    mat4 model = mat4::translate(vec3(-1.0f, 0.0f, -10.0f));
+    mat4 model_matrix = transform_to_matrix(transform);
+    // mat4 model_matrix = mat4::translate(vec3(0.0f, 0.0f, -10.0f)) * (mat4::rotate(deg_to_rad(-135.0f), vec3(1.0f, 0.0f, 0.0f)) * mat4::scale(vec3(0.5f)));
 
     shader_use(state.phong_shader);
 
@@ -343,11 +344,11 @@ void siren::renderer_render_cube(siren::Camera* camera, siren::Texture texture) 
     }
 
     shader_set_uniform_int(state.phong_shader, "u_texture", 0);
-    shader_set_uniform_mat4(state.phong_shader, "model", model);
-    shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, -8.0f));
+    shader_set_uniform_mat4(state.phong_shader, "model", model_matrix);
+    shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, 0.0f));
     shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
-    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.22f);
-    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.20f);
+    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.027f);
+    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.0028f);
 
     glBindVertexArray(state.cube_vao);
     glActiveTexture(GL_TEXTURE0);
@@ -357,4 +358,33 @@ void siren::renderer_render_cube(siren::Camera* camera, siren::Texture texture) 
 
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void siren::renderer_render_model(siren::Camera* camera, siren::Model* model) {
+    mat4 model_matrix = mat4::translate(vec3(0.0f, 0.0f, -10.0f)) * (mat4::rotate(deg_to_rad(-135.0f), vec3(1.0f, 0.0f, 0.0f)) * mat4::scale(vec3(0.05f, 0.05f, 0.05f)));
+
+    shader_use(state.phong_shader);
+
+    if (camera->is_dirty()) {
+        mat4 view = camera->get_view_matrix();
+        vec3 camera_position = camera->get_position();
+        shader_set_uniform_mat4(state.phong_shader, "view", view);
+        shader_set_uniform_vec3(state.phong_shader, "view_position", camera_position);
+    }
+
+    shader_set_uniform_int(state.phong_shader, "u_texture", 0);
+    shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, -8.0f));
+    shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
+    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.22f);
+    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.20f);
+
+    for (uint32_t mesh_index = 0; mesh_index < model->mesh_count; mesh_index++) {
+        // model_matrix = model_matrix * mat4::translate(model->mesh[mesh_index].offset);
+        shader_set_uniform_mat4(state.phong_shader, "model", model_matrix);
+        
+        glBindVertexArray(model->mesh[mesh_index].vao);
+        glDrawElements(GL_TRIANGLES, model->mesh[mesh_index].index_count, GL_UNSIGNED_INT, 0);
+    }
+
+    glBindVertexArray(0);
 }
