@@ -330,9 +330,7 @@ void siren::renderer_render_text(const char* text, siren::Font* font, siren::ive
 }
 
 void siren::renderer_render_cube(siren::Camera* camera, siren::Transform& transform, siren::Texture texture) {
-    // mat4 model = mat4::rotate(vec3(0.0f, deg_to_rad(45.0f), 0.0f)) * mat4::translate(vec3(-1.0f, 0.0f, -10.0f));
     mat4 model_matrix = transform_to_matrix(transform);
-    // mat4 model_matrix = mat4::translate(vec3(0.0f, 0.0f, -10.0f)) * (mat4::rotate(deg_to_rad(-135.0f), vec3(1.0f, 0.0f, 0.0f)) * mat4::scale(vec3(0.5f)));
 
     shader_use(state.phong_shader);
 

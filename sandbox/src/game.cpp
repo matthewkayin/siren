@@ -23,6 +23,7 @@ static GameState gamestate;
 
 using siren::ivec2;
 using siren::vec3;
+using siren::quat;
 
 bool game_init() {
     gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
@@ -30,14 +31,14 @@ bool game_init() {
     gamestate.texture = siren::texture_load("texture/wall.jpg");
     // siren::model_load(&gamestate.model, "model/turret/TripodBot_Turret.obj");
     gamestate.cube_transform = (siren::Transform) {
-        .position = siren::vec3(-2.0f, 0.0f, -2.0f),
-        .rotation = siren::vec3(0.0f),
+        .position = vec3(-2.0f, 0.0f, -2.0f),
+        .rotation = quat(),
         .scale = siren::vec3(1.0f)
     };
     gamestate.cube_transform2 = (siren::Transform) {
-        .position = siren::vec3(2.0f, 0.0f, -2.0f),
-        .rotation = siren::vec3(0.0f),
-        .scale = siren::vec3(0.5f)
+        .position = vec3(2.0f, 0.0f, -2.0f),
+        .rotation = quat(),
+        .scale = siren::vec3(1.0f)
     };
 
 
@@ -83,19 +84,18 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    // gamestate.cube_transform2.rotation.z += 100.0f * delta;
-    gamestate.cube_transform2.rotation.x += 100.0f * delta;
+    gamestate.cube_transform2.rotation = gamestate.cube_transform2.rotation * quat::from_axis_angle(siren::VEC3_UP, 1.0f * delta, true) * quat::from_axis_angle(siren::VEC3_RIGHT, 1.0f * delta, true);
 
     return true;
 }
 
 bool game_render() {
-    // siren::renderer_render_model(&gamestate.camera, &gamestate.model);
     siren::renderer_render_cube(&gamestate.camera, gamestate.cube_transform, gamestate.texture);
     siren::renderer_render_cube(&gamestate.camera, gamestate.cube_transform2, gamestate.texture);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());
     siren::renderer_render_text(fps_text, gamestate.debug_font, ivec2(0, 0), siren::vec3(1.0f));
+
     return true;
 }
