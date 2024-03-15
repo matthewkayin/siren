@@ -10,14 +10,16 @@
 #include <vector>
 
 bool siren::model_load(siren::Model* model, const char* path) {
-    char full_path[128];
-    sprintf(full_path, "%s%s", resource_get_base_path(), path);
+    std::string short_path = std::string(path);
+    std::string full_path = resource_get_base_path() + short_path;
+    std::string short_path_directory = short_path.substr(0, short_path.find_last_of("/") + 1);
 
-    SIREN_LOG_DEBUG("Loading model %s...", full_path);
+    SIREN_LOG_DEBUG("Loading model %s...", full_path.c_str());
+    SIREN_LOG_DEBUG("Short path directory is: %s", short_path_directory.c_str());
 
     // Load the model file
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(full_path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
+    const aiScene* scene = importer.ReadFile(full_path.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         SIREN_LOG_ERROR("Error loading model: %s", importer.GetErrorString());
         return false;
@@ -110,6 +112,19 @@ bool siren::model_load(siren::Model* model, const char* path) {
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)(6 * sizeof(float)));
+
+        // get material data
+        aiMaterial* material = scene->mMaterials[meshes[i]->mMaterialIndex];
+        if (material->GetTextureCount(aiTextureType_DIFFUSE) == 0) {
+            mesh.map_diffuse = texture_system_acquire("texture/empty.png");
+        } else {
+            aiString texture_path;
+            material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_path);
+            SIREN_LOG_DEBUG("Texture path is %s", texture_path.C_Str());
+            std::string full_texture_path = short_path_directory + std::string(texture_path.C_Str());
+            SIREN_LOG_DEBUG("Full texture path is %s", full_texture_path.c_str());
+            mesh.map_diffuse = texture_system_acquire(full_texture_path.c_str());
+        }
 
     } // end for each mesh 
 

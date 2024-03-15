@@ -1,13 +1,11 @@
 #include "resource.h"
 
-#include <cstring>
-
-static char resource_path[64];
+static std::string resource_path;
 
 void siren::resource_set_base_path(const char* path) {
-    strcpy_s(resource_path, 64, path);
+    resource_path = std::string(path);
 }
 
-const char* siren::resource_get_base_path() {
+const std::string siren::resource_get_base_path() {
     return resource_path;
 }

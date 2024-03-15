@@ -11,15 +11,14 @@
 
 #define IO_READ_CHUNK_SIZE 262144
 
-bool shader_compile(siren::Shader* id, GLenum shader_type, const char* p_path) {
+bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
     // determine full path
-    char path[128];
-    sprintf(path, "%s%s", siren::resource_get_base_path(), p_path);
+    std::string full_path = siren::resource_get_base_path() + std::string(path);
 
     // open shader file
-    FILE* shader_file = fopen(path, "rb");
+    FILE* shader_file = fopen(full_path.c_str(), "rb");
     if (shader_file == NULL) {
-        SIREN_LOG_ERROR("Unable to open shader at path %s", path);
+        SIREN_LOG_ERROR("Unable to open shader at path %s", full_path.c_str());
         return false;
     }
 
@@ -37,13 +36,13 @@ bool shader_compile(siren::Shader* id, GLenum shader_type, const char* p_path) {
             // Overflow check
             if (size <= used) {
                 free(data);
-                SIREN_LOG_ERROR("Shader file %s too large\n", path);
+                SIREN_LOG_ERROR("Shader file %s too large\n", full_path.c_str());
                 return false;
             }
 
             temp = (char*)realloc(data, size);
             if (temp == NULL) {
-                SIREN_LOG_ERROR("Realloc failure while reading file %s", path);
+                SIREN_LOG_ERROR("Realloc failure while reading file %s", full_path.c_str());
                 free(data);
                 return false;
             }
@@ -60,7 +59,7 @@ bool shader_compile(siren::Shader* id, GLenum shader_type, const char* p_path) {
 
     temp = (char*)realloc(data, used + 1);
     if (temp == NULL) {
-        SIREN_LOG_ERROR("Realloc failure while reading file %s", path);
+        SIREN_LOG_ERROR("Realloc failure while reading file %s", full_path.c_str());
         free(data);
         return false;
     }

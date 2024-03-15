@@ -373,12 +373,15 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
     shader_set_uniform_int(state.phong_shader, "u_texture", 0);
     shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, -8.0f));
     shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
-    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.22f);
-    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.20f);
+    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.022f);
+    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.019f);
 
     for (uint32_t mesh_index = 0; mesh_index < model->mesh_count; mesh_index++) {
         model_matrix = model_matrix * mat4::translate(model->mesh[mesh_index].offset);
         shader_set_uniform_mat4(state.phong_shader, "model", model_matrix);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, model->mesh[mesh_index].map_diffuse);
         
         glBindVertexArray(model->mesh[mesh_index].vao);
         glDrawElements(GL_TRIANGLES, model->mesh[mesh_index].index_count, GL_UNSIGNED_INT, 0);

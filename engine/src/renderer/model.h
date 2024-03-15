@@ -4,6 +4,7 @@
 
 #include "math/vector2.h"
 #include "math/vector3.h"
+#include "renderer/texture.h"
 
 namespace siren {
     struct Mesh {
@@ -12,6 +13,7 @@ namespace siren {
         uint32_t ebo;
         uint32_t index_count;
         vec3 offset;
+        Texture map_diffuse;
     };
 
     struct Model {

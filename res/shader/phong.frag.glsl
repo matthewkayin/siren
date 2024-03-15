@@ -26,8 +26,7 @@ void main() {
 }
 
 vec3 calculate_point_light(PointLight light, vec3 normal, vec3 frag_position, vec3 view_direction) {
-    // vec3 sampled = vec3(texture(u_texture, frag_texture_coordinate));
-    vec3 sampled = vec3(1.0);
+    vec3 sampled = vec3(texture(u_texture, frag_texture_coordinate));
     // vec3 ambient = material.ka * vec3(texture(material.map_ka, texture_coordinate));
     // vec3 ambient = vec3(0.2, 0.0, 0.0);
     vec3 ambient = 0.2 * sampled;

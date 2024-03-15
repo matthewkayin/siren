@@ -14,7 +14,6 @@
 struct GameState {
     siren::Font* debug_font;
     siren::Camera camera;
-    siren::Texture texture;
     siren::Model model;
     siren::Transform model_transform;
 };
@@ -27,8 +26,7 @@ using siren::quat;
 bool game_init() {
     gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
-    gamestate.texture = siren::texture_load("texture/wall.jpg");
-    siren::model_load(&gamestate.model, "model/core/personality_sphere_model_lod1.obj");
+    siren::model_load(&gamestate.model, "model/cube/Metal_box.obj");
     gamestate.model_transform = (siren::Transform) {
         .position = vec3(0.0f, 0.0f, -5.0f),
         .rotation = quat(),
