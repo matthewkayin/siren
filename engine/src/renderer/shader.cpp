@@ -18,7 +18,7 @@ bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
     // open shader file
     FILE* shader_file = fopen(full_path.c_str(), "rb");
     if (shader_file == NULL) {
-        SIREN_LOG_ERROR("Unable to open shader at path %s", full_path.c_str());
+        SIREN_ERROR("Unable to open shader at path %s", full_path.c_str());
         return false;
     }
 
@@ -36,13 +36,13 @@ bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
             // Overflow check
             if (size <= used) {
                 free(data);
-                SIREN_LOG_ERROR("Shader file %s too large\n", full_path.c_str());
+                SIREN_ERROR("Shader file %s too large\n", full_path.c_str());
                 return false;
             }
 
             temp = (char*)realloc(data, size);
             if (temp == NULL) {
-                SIREN_LOG_ERROR("Realloc failure while reading file %s", full_path.c_str());
+                SIREN_ERROR("Realloc failure while reading file %s", full_path.c_str());
                 free(data);
                 return false;
             }
@@ -59,7 +59,7 @@ bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
 
     temp = (char*)realloc(data, used + 1);
     if (temp == NULL) {
-        SIREN_LOG_ERROR("Realloc failure while reading file %s", full_path.c_str());
+        SIREN_ERROR("Realloc failure while reading file %s", full_path.c_str());
         free(data);
         return false;
     }
@@ -75,7 +75,7 @@ bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
     if (!success) {
         char info_log[512];
         glGetShaderInfoLog(*id, 512, NULL, info_log);
-        SIREN_LOG_ERROR("Shader %s failed to compile: %s", path, info_log);
+        SIREN_ERROR("Shader %s failed to compile: %s", path, info_log);
         return false;
     }
 
@@ -107,7 +107,7 @@ bool siren::shader_load(siren::Shader* id, const char* vertex_path, const char* 
     if (!success) {
         char info_log[512];
         glGetProgramInfoLog(*id, 512, NULL, info_log);
-        SIREN_LOG_ERROR("Failed linking shader program. Vertex: %s Fragment %s Error: %s", vertex_path, fragment_path, info_log);
+        SIREN_ERROR("Failed linking shader program. Vertex: %s Fragment %s Error: %s", vertex_path, fragment_path, info_log);
         return false;
     }
 

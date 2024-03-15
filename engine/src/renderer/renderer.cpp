@@ -45,7 +45,7 @@ bool siren::renderer_init(RendererConfig config) {
     // Create window
     state.window = SDL_CreateWindow(config.window_name, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, config.window_size.x, config.window_size.y, SDL_WINDOW_OPENGL);
     if (state.window == NULL) {
-        SIREN_LOG_ERROR("Error creating window: %s", SDL_GetError());
+        SIREN_ERROR("Error creating window: %s", SDL_GetError());
         return false;
     }
     state.screen_size = config.screen_size;
@@ -54,14 +54,14 @@ bool siren::renderer_init(RendererConfig config) {
     // Create GL context
     state.context = SDL_GL_CreateContext(state.window);
     if (state.context == NULL) {
-        SIREN_LOG_ERROR("Error creating GL context: %s", SDL_GetError());
+        SIREN_ERROR("Error creating GL context: %s", SDL_GetError());
         return false;
     }
 
     // Setup GLAD
     gladLoadGLLoader(SDL_GL_GetProcAddress);
     if (glGenVertexArrays == NULL) {
-        SIREN_LOG_ERROR("Error loading OpenGL.");
+        SIREN_ERROR("Error loading OpenGL.");
         return false;
     }
 
@@ -195,7 +195,7 @@ bool siren::renderer_init(RendererConfig config) {
 	glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        SIREN_LOG_ERROR("Screen framebuffer not complete");
+        SIREN_ERROR("Screen framebuffer not complete");
 		return false;
 	}
 	
@@ -209,7 +209,7 @@ bool siren::renderer_init(RendererConfig config) {
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, state.screen_intermediate_texture, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        SIREN_LOG_ERROR("Screen intermediate framebuffer not complete");
+        SIREN_ERROR("Screen intermediate framebuffer not complete");
 		return false;
 	}
 
@@ -233,11 +233,11 @@ bool siren::renderer_init(RendererConfig config) {
         return false;
     }
     mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
-    SIREN_LOG_INFO("projection:\n%m4", &projection);
+    SIREN_INFO("projection:\n%m4", &projection);
     shader_use(state.phong_shader);
     shader_set_uniform_mat4(state.phong_shader, "projection", projection);
 
-    SIREN_LOG_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
+    SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
     // Initialize subsystems
     font_system_init();

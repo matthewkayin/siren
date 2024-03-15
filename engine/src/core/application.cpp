@@ -32,7 +32,7 @@ siren::Key input_sdlk_to_key(SDL_Keycode key);
 
 SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     if (initialized) {
-        SIREN_LOG_ERROR("application_create called more than once");
+        SIREN_ERROR("application_create called more than once");
         return false;
     }
 
@@ -45,17 +45,17 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
 
     // Check to make sure app config was valid
     if (!app.init || !app.update || !app.render) {
-        SIREN_LOG_ERROR("Application function pointers not assigned!");
+        SIREN_ERROR("Application function pointers not assigned!");
         return false;
     }
 
     // Init SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        SIREN_LOG_ERROR("SDL failed to initialize: %s", SDL_GetError());
+        SIREN_ERROR("SDL failed to initialize: %s", SDL_GetError());
     }
 
     if (TTF_Init() == -1) {
-        SIREN_LOG_ERROR("SDL_ttf failed to initialize: %s", TTF_GetError());
+        SIREN_ERROR("SDL_ttf failed to initialize: %s", TTF_GetError());
     }
 
     // Init subsystems
@@ -70,7 +70,7 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     app.debug_font = font_system_acquire_font("font/hack.ttf", 10);
 
     if (!app.init()) {
-        SIREN_LOG_ERROR("Application failed to initialize");
+        SIREN_ERROR("Application failed to initialize");
         return false;
     }
 
@@ -133,14 +133,14 @@ SIREN_API bool siren::application_run() {
         }
 
         if (!app.update(delta)) {
-            SIREN_LOG_ERROR("Game update failed. Shutting down.");
+            SIREN_ERROR("Game update failed. Shutting down.");
             is_running = false;
             break;
         }
 
         renderer_prepare_frame();
         if (!app.render()) {
-            SIREN_LOG_ERROR("Game render failed. Shutting down.");
+            SIREN_ERROR("Game render failed. Shutting down.");
             is_running = false;
             break;
         }

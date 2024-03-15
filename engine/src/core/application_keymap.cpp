@@ -245,6 +245,6 @@ siren::Key input_sdlk_to_key(SDL_Keycode key) {
         case SDLK_SLEEP: return siren::KEY_SLEEP;
     }
 
-    SIREN_LOG_WARN("Unrecognized key pressed %i", key);
+    SIREN_WARN("Unrecognized key pressed %i", key);
     return siren::KEY_UNKNOWN;
 }

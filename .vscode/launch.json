@@ -6,10 +6,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/sandbox.exe",
-            "args": [
-                "--resource-path",
-                "../res/"
-            ],
+            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/bin",
             "environment": [],

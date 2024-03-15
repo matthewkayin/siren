@@ -14,14 +14,14 @@ bool siren::model_load(siren::Model* model, const char* path) {
     std::string full_path = resource_get_base_path() + short_path;
     std::string short_path_directory = short_path.substr(0, short_path.find_last_of("/") + 1);
 
-    SIREN_LOG_DEBUG("Loading model %s...", full_path.c_str());
-    SIREN_LOG_DEBUG("Short path directory is: %s", short_path_directory.c_str());
+    SIREN_TRACE("Loading model %s...", full_path.c_str());
+    SIREN_TRACE("Short path directory is: %s", short_path_directory.c_str());
 
     // Load the model file
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(full_path.c_str(), aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        SIREN_LOG_ERROR("Error loading model: %s", importer.GetErrorString());
+        SIREN_ERROR("Error loading model: %s", importer.GetErrorString());
         return false;
     }
 
@@ -53,7 +53,7 @@ bool siren::model_load(siren::Model* model, const char* path) {
         vec2 texture_coordinate;
     };
     for (uint32_t i = 0; i < meshes.size(); i++) {
-        SIREN_LOG_DEBUG("Creating mesh index %u...", i);
+        SIREN_TRACE("Creating mesh index %u...", i);
         // collect mesh vertices
         std::vector<VertexData> vertices;
         for (uint32_t v = 0; v < meshes[i]->mNumVertices; v++) {
@@ -89,7 +89,7 @@ bool siren::model_load(siren::Model* model, const char* path) {
             }
         }
 
-        SIREN_LOG_DEBUG("Vertex count: %u | Index count: %u | Mesh offset: %v3", vertices.size(), indices.size(), mesh_offset);
+        SIREN_TRACE("Vertex count: %u | Index count: %u | Mesh offset: %v3", vertices.size(), indices.size(), mesh_offset);
 
         // setup the mesh in OpenGL
         Mesh& mesh = model->mesh[i];
@@ -120,9 +120,9 @@ bool siren::model_load(siren::Model* model, const char* path) {
         } else {
             aiString texture_path;
             material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_path);
-            SIREN_LOG_DEBUG("Texture path is %s", texture_path.C_Str());
+            SIREN_TRACE("Texture path is %s", texture_path.C_Str());
             std::string full_texture_path = short_path_directory + std::string(texture_path.C_Str());
-            SIREN_LOG_DEBUG("Full texture path is %s", full_texture_path.c_str());
+            SIREN_TRACE("Full texture path is %s", full_texture_path.c_str());
             mesh.map_diffuse = texture_system_acquire(full_texture_path.c_str());
         }
 
@@ -130,7 +130,7 @@ bool siren::model_load(siren::Model* model, const char* path) {
 
     glBindVertexArray(0);
 
-    SIREN_LOG_DEBUG("Loaded model %s", path);
+    SIREN_TRACE("Loaded model %s", path);
 
     return true;
 }

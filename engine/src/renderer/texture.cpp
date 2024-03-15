@@ -13,17 +13,17 @@
 static std::unordered_map<const char*, siren::Texture> textures;
 
 siren::Texture siren::texture_system_acquire(const char* path) {
-    SIREN_LOG_DEBUG("Requested texture %s", path);
+    SIREN_TRACE("Requested texture %s", path);
     // check if texture has been loaded
     std::unordered_map<const char*, Texture>::iterator it = textures.find(path);
     if (it != textures.end()) {
-        SIREN_LOG_DEBUG("Texture already loaded, returning copy.");
+        SIREN_TRACE("Texture already loaded, returning copy.");
         return it->second;
     }
 
     // determine full path
     std::string full_path = resource_get_base_path() + std::string(path);
-    SIREN_LOG_DEBUG("Loading texture %s...", full_path.c_str());
+    SIREN_TRACE("Loading texture %s...", full_path.c_str());
 
     stbi_set_flip_vertically_on_load(false);
     int width;
@@ -31,7 +31,7 @@ siren::Texture siren::texture_system_acquire(const char* path) {
     int number_of_components;
     stbi_uc* data = stbi_load(full_path.c_str(), &width, &height, &number_of_components, 0);
     if (!data) {
-        SIREN_LOG_ERROR("Could not load texture %s", full_path.c_str());
+        SIREN_ERROR("Could not load texture %s", full_path.c_str());
         return 0;
     }
 
@@ -43,7 +43,7 @@ siren::Texture siren::texture_system_acquire(const char* path) {
     } else if (number_of_components == 4) {
         texture_format = GL_RGBA;
     } else {
-        SIREN_LOG_ERROR("Texture format of texture %s not recognized.", full_path.c_str());
+        SIREN_ERROR("Texture format of texture %s not recognized.", full_path.c_str());
     }
 
     uint32_t texture;
@@ -64,6 +64,6 @@ siren::Texture siren::texture_system_acquire(const char* path) {
     stbi_image_free(data);
 
     textures[path] = texture;
-    SIREN_LOG_DEBUG("Texture loaded successfully.");
+    SIREN_TRACE("Texture loaded successfully.");
     return texture;
 }

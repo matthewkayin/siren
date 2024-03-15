@@ -28,7 +28,7 @@ void siren::input_init() {
     memset(&input_state, 0, sizeof(InputState));
 
     initialized = true;
-    SIREN_LOG_INFO("Input subsystem initialized.");
+    SIREN_INFO("Input subsystem initialized.");
 }
 
 void siren::input_quit() {
