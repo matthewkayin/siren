@@ -16,8 +16,7 @@ struct GameState {
     siren::Camera camera;
     siren::Texture texture;
     siren::Model model;
-    siren::Transform cube_transform;
-    siren::Transform cube_transform2;
+    siren::Transform model_transform;
 };
 static GameState gamestate;
 
@@ -29,18 +28,12 @@ bool game_init() {
     gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
     gamestate.texture = siren::texture_load("texture/wall.jpg");
-    // siren::model_load(&gamestate.model, "model/turret/TripodBot_Turret.obj");
-    gamestate.cube_transform = (siren::Transform) {
-        .position = vec3(-2.0f, 0.0f, -2.0f),
+    siren::model_load(&gamestate.model, "model/core/personality_sphere_model_lod1.obj");
+    gamestate.model_transform = (siren::Transform) {
+        .position = vec3(0.0f, 0.0f, -5.0f),
         .rotation = quat(),
-        .scale = siren::vec3(1.0f)
+        .scale = vec3(0.05f)
     };
-    gamestate.cube_transform2 = (siren::Transform) {
-        .position = vec3(2.0f, 0.0f, -2.0f),
-        .rotation = quat(),
-        .scale = siren::vec3(1.0f)
-    };
-
 
     return true;
 }
@@ -84,14 +77,13 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    gamestate.cube_transform2.rotation = gamestate.cube_transform2.rotation * quat::from_axis_angle(siren::VEC3_UP, 1.0f * delta, true) * quat::from_axis_angle(siren::VEC3_RIGHT, 1.0f * delta, true);
+    gamestate.model_transform.rotation = gamestate.model_transform.rotation * quat::from_axis_angle(siren::VEC3_UP.normalized(), 1.0f * delta, true) * quat::from_axis_angle(siren::VEC3_FORWARD, 1.0f * delta, true);
 
     return true;
 }
 
 bool game_render() {
-    siren::renderer_render_cube(&gamestate.camera, gamestate.cube_transform, gamestate.texture);
-    siren::renderer_render_cube(&gamestate.camera, gamestate.cube_transform2, gamestate.texture);
+    siren::renderer_render_model(&gamestate.camera, gamestate.model_transform, &gamestate.model);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());

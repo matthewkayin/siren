@@ -101,17 +101,27 @@ namespace siren {
             mat4 result(1.0f);
             quat n = normalized();
 
-            result[0][0] = 1.0f - 2.0f * n.y * n.y - 2.0f * n.z * n.z;
-            result[0][1] = 2.0f * n.x * n.y - 2.0f * n.z * n.w;
-            result[0][2] = 2.0f * n.x * n.z + 2.0f * n.y * n.w;
+            float nxx = n.x * n.x;
+            float nyy = n.y * n.y;
+            float nzz = n.z * n.z;
+            float nxz = n.x * n.z;
+            float nxy = n.x * n.y;
+            float nyz = n.y * n.z;
+            float nwx = n.w * n.x;
+            float nwy = n.w * n.y;
+            float nwz = n.w * n.z;
 
-            result[1][0] = 2.0f * n.x * n.y * 2.0f * n.z * n.w;
-            result[1][1] = 1.0f - 2.0f * n.x * n.x - 2.0f * n.z * n.z;
-            result[1][2] = 2.0f * n.y * n.z - 2.0f * n.x * n.w;
+            result[0][0] = 1.0f - 2.0f * (nyy + nzz);
+            result[0][1] = 2.0f * (nxy + nwz);
+            result[0][2] = 2.0f * (nxz - nwy);
 
-            result[2][0] = 2.0f * n.x * n.z - 2.0f * n.y * n.w;
-            result[2][1] = 2.0f * n.y * n.z + 2.0f * n.x * n.w;
-            result[2][2] = 1.0f - 2.0f * n.x * n.x - 2.0f * n.y * n.y;
+            result[1][0] = 2.0f * (nxy - nwz);
+            result[1][1] = 1.0f - 2.0f * (nxx + nzz);
+            result[1][2] = 2.0f * (nyz + nwx);
+
+            result[2][0] = 2.0f * (nxz + nwy);
+            result[2][1] = 2.0f * (nyz - nwx);
+            result[2][2] = 1.0f - 2.0f * (nxx + nyy);
 
             return result;
         }
