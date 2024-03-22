@@ -4,6 +4,7 @@
 
 #include "math/vector2.h"
 #include "math/vector3.h"
+#include "containers/darray.h"
 #include "renderer/texture.h"
 
 namespace siren {
@@ -17,10 +18,8 @@ namespace siren {
     };
 
     struct Model {
-        Mesh* mesh;
-        uint32_t mesh_count;
+        DArray<Mesh> mesh;
     };
 
-    SIREN_API bool model_load(Model* model, const char* path);
-    SIREN_API void model_free(Model* model);
+    SIREN_API Model* model_acquire(const char* path);
 }

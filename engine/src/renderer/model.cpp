@@ -3,15 +3,36 @@
 #include "core/logger.h"
 #include "core/resource.h"
 
+#include "containers/hashtable.h"
+
 #include <glad/glad.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <vector>
 
-bool siren::model_load(siren::Model* model, const char* path) {
+static siren::Hashtable<siren::Model> models(32);
+
+bool model_load(siren::Model* model, const char* path);
+
+siren::Model* siren::model_acquire(const char* path) {
+    uint32_t index = models.get_index_of_key(path);
+    if (index != siren::Hashtable<siren::Model>::ENTRY_NOT_FOUND) {
+        return &models.get_data_at_index(index);
+    }
+
+    Model model;
+    if (!model_load(&model, path)) {
+        return nullptr;
+    }
+
+    index = models.insert(path, model);
+    return &models.get_data_at_index(index);
+}
+
+bool model_load(siren::Model* model, const char* path) {
     std::string short_path = std::string(path);
-    std::string full_path = resource_get_base_path() + short_path;
+    std::string full_path = siren::resource_get_base_path() + short_path;
     std::string short_path_directory = short_path.substr(0, short_path.find_last_of("/") + 1);
 
     SIREN_TRACE("Loading model %s...", full_path.c_str());
@@ -43,14 +64,13 @@ bool siren::model_load(siren::Model* model, const char* path) {
     }
 
     // Initialize mesh array
-    model->mesh_count = meshes.size();
-    model->mesh = new Mesh[model->mesh_count];
+    model->mesh.reserve(meshes.size());
 
     // Create each mesh using the loaded mesh data and buffer its data to the gpu
     struct VertexData {
-        vec3 position;
-        vec3 normal;
-        vec2 texture_coordinate;
+        siren::vec3 position;
+        siren::vec3 normal;
+        siren::vec2 texture_coordinate;
     };
     for (uint32_t i = 0; i < meshes.size(); i++) {
         SIREN_TRACE("Creating mesh index %u...", i);
@@ -60,25 +80,25 @@ bool siren::model_load(siren::Model* model, const char* path) {
             // Note: assimp models might have multiple texture coordinates. currently we are naively assuming that we can just use coordinate set 0,
             // but later on we might need to write some code which decides which coordinates to use`
             vertices.push_back((VertexData) {
-                .position = vec3(meshes[i]->mVertices[v].x, meshes[i]->mVertices[v].y, meshes[i]->mVertices[v].z),
-                .normal = vec3(meshes[i]->mNormals[v].x, meshes[i]->mNormals[v].y, meshes[i]->mNormals[v].z),
-                .texture_coordinate = vec2(meshes[i]->mTextureCoords[0][v].x, meshes[i]->mTextureCoords[0][v].y)
+                .position = siren::vec3(meshes[i]->mVertices[v].x, meshes[i]->mVertices[v].y, meshes[i]->mVertices[v].z),
+                .normal = siren::vec3(meshes[i]->mNormals[v].x, meshes[i]->mNormals[v].y, meshes[i]->mNormals[v].z),
+                .texture_coordinate = siren::vec2(meshes[i]->mTextureCoords[0][v].x, meshes[i]->mTextureCoords[0][v].y)
             });
         }
 
         // determine the mesh offset, which is the center of its coordinates in each direction
-        vec3 position_max = vertices[0].position;
-        vec3 position_min = position_max;
+        siren::vec3 position_max = vertices[0].position;
+        siren::vec3 position_min = position_max;
         for (uint32_t v = 1; v < vertices.size(); v++) {
-            position_max.x = max(position_max.x, vertices[i].position.x);
-            position_max.y = max(position_max.x, vertices[i].position.y);
-            position_max.z = max(position_max.x, vertices[i].position.z);
+            position_max.x = siren::max(position_max.x, vertices[i].position.x);
+            position_max.y = siren::max(position_max.x, vertices[i].position.y);
+            position_max.z = siren::max(position_max.x, vertices[i].position.z);
 
-            position_min.x = min(position_min.x, vertices[i].position.x);
-            position_min.y = min(position_min.x, vertices[i].position.y);
-            position_min.z = min(position_min.x, vertices[i].position.z);
+            position_min.x = siren::min(position_min.x, vertices[i].position.x);
+            position_min.y = siren::min(position_min.x, vertices[i].position.y);
+            position_min.z = siren::min(position_min.x, vertices[i].position.z);
         }
-        vec3 mesh_offset = position_min + ((position_max - position_min) * 0.5f);
+        siren::vec3 mesh_offset = position_min + ((position_max - position_min) * 0.5f);
 
         // collect mesh indices
         std::vector<uint32_t> indices;
@@ -92,9 +112,9 @@ bool siren::model_load(siren::Model* model, const char* path) {
         SIREN_TRACE("Vertex count: %u | Index count: %u | Mesh offset: %v3", vertices.size(), indices.size(), mesh_offset);
 
         // setup the mesh in OpenGL
-        Mesh& mesh = model->mesh[i];
+        siren::Mesh mesh;
         mesh.index_count = indices.size();
-        mesh.offset = vec3(0.0f);
+        mesh.offset = siren::vec3(0.0f);
         glGenVertexArrays(1, &mesh.vao);
         glGenBuffers(1, &mesh.vbo);
         glGenBuffers(1, &mesh.ebo);
@@ -116,16 +136,17 @@ bool siren::model_load(siren::Model* model, const char* path) {
         // get material data
         aiMaterial* material = scene->mMaterials[meshes[i]->mMaterialIndex];
         if (material->GetTextureCount(aiTextureType_DIFFUSE) == 0) {
-            mesh.map_diffuse = texture_system_acquire("texture/empty.png");
+            mesh.map_diffuse = siren::texture_acquire("texture/empty.png");
         } else {
             aiString texture_path;
             material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_path);
             SIREN_TRACE("Texture path is %s", texture_path.C_Str());
             std::string full_texture_path = short_path_directory + std::string(texture_path.C_Str());
             SIREN_TRACE("Full texture path is %s", full_texture_path.c_str());
-            mesh.map_diffuse = texture_system_acquire(full_texture_path.c_str());
+            mesh.map_diffuse = siren::texture_acquire(full_texture_path.c_str());
         }
 
+        model->mesh.push(mesh);
     } // end for each mesh 
 
     glBindVertexArray(0);
@@ -133,8 +154,4 @@ bool siren::model_load(siren::Model* model, const char* path) {
     SIREN_TRACE("Loaded model %s", path);
 
     return true;
-}
-
-void siren::model_free(siren::Model* model) {
-    delete [] model->mesh;
 }

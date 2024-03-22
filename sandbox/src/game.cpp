@@ -14,7 +14,7 @@
 struct GameState {
     siren::Font* debug_font;
     siren::Camera camera;
-    siren::Model model;
+    siren::Model* model;
     siren::Transform model_transform;
 };
 static GameState gamestate;
@@ -24,9 +24,9 @@ using siren::vec3;
 using siren::quat;
 
 bool game_init() {
-    gamestate.debug_font = siren::font_system_acquire_font("font/hack.ttf", 10);
+    gamestate.debug_font = siren::font_acquire("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
-    siren::model_load(&gamestate.model, "model/cube/Metal_box.obj");
+    gamestate.model = siren::model_acquire("model/cube/Metal_box.obj");
     gamestate.model_transform = (siren::Transform) {
         .position = vec3(0.0f, 0.0f, -5.0f),
         .rotation = quat(),
@@ -81,7 +81,7 @@ bool game_update(float delta) {
 }
 
 bool game_render() {
-    siren::renderer_render_model(&gamestate.camera, gamestate.model_transform, &gamestate.model);
+    siren::renderer_render_model(&gamestate.camera, gamestate.model_transform, gamestate.model);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());

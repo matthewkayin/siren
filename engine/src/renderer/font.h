@@ -2,7 +2,7 @@
 
 #include "defines.h"
 
-namespace siren{
+namespace siren {
     struct Font {
         static const int FIRST_CHAR = 32;
 
@@ -11,7 +11,5 @@ namespace siren{
         uint32_t glyph_height;
     };
 
-    void font_system_init();
-    void font_system_quit();
-    SIREN_API Font* font_system_acquire_font(const char* path, uint16_t size);
+    SIREN_API Font* font_acquire(const char* path, uint16_t size);
 }

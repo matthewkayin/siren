@@ -3,6 +3,7 @@
 #include "core/logger.h"
 #include "core/resource.h"
 #include "math/math.h"
+#include "containers/hashtable.h"
 
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
@@ -10,37 +11,20 @@
 
 #include <cstring>
 #include <cstdio>
-#include <unordered_map>
 
 static bool initialized = false;
-static std::unordered_map<const char*, siren::Font> fonts;
+static siren::Hashtable<siren::Font> fonts(16);
 
-void siren::font_system_init() {
-    if (initialized) {
-        return;
-    }
-
-    initialized = true;
-}
-
-void siren::font_system_quit() {
-    if (!initialized) {
-        return;
-    }
-
-    initialized = false;
-}
-
-siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
+siren::Font* siren::font_acquire(const char* path, uint16_t size) {
     static const SDL_Color COLOR_WHITE = { 255, 255, 255, 255 };
 
     char key[256];
     sprintf(key, "%s:%u", path, size);
 
     // Check if font has been loaded
-    std::unordered_map<const char*, Font>::iterator it = fonts.find(key);
-    if (it != fonts.end()) {
-        return &it->second;
+    uint32_t index = fonts.get_index_of_key(key);
+    if (index != siren::Hashtable<siren::Font>::ENTRY_NOT_FOUND) {
+        return &fonts.get_data_at_index(index);
     }
 
     // Begin creating a new font
@@ -90,9 +74,6 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
     font.glyph_width = (uint32_t)max_width;
     font.glyph_height = (uint32_t)max_height;
 
-    // Place the font in the hashtable
-    fonts.insert(std::pair<const char*, Font>(key, font));
-
     // Cleanup
     glBindTexture(GL_TEXTURE_2D, 0);
     for (int i = 0; i < 96; i++) {
@@ -101,5 +82,7 @@ siren::Font* siren::font_system_acquire_font(const char* path, uint16_t size) {
     SDL_FreeSurface(atlas_surface);
     TTF_CloseFont(ttf_font);
 
-    return &fonts.find(key)->second;
+    // Place the font in the hashtable
+    index = fonts.insert(key, font);
+    return &fonts.get_data_at_index(index);
 }

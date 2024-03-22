@@ -239,11 +239,6 @@ bool siren::renderer_init(RendererConfig config) {
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
-    // Initialize subsystems
-    font_system_init();
-    Font* font = font_system_acquire_font("font/hack.ttf", 10);
-    Font* font2 = font_system_acquire_font("font/hack.ttf", 16);
-
     initialized = true;
 
     return true;
@@ -253,9 +248,6 @@ void siren::renderer_quit() {
     if (!initialized) {
         return;
     }
-
-    // Quit subsystems
-    font_system_quit();
 
     SDL_GL_DeleteContext(state.context);
     SDL_DestroyWindow(state.window);
@@ -376,7 +368,7 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
     shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.022f);
     shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.019f);
 
-    for (uint32_t mesh_index = 0; mesh_index < model->mesh_count; mesh_index++) {
+    for (uint32_t mesh_index = 0; mesh_index < model->mesh.size(); mesh_index++) {
         model_matrix = model_matrix * mat4::translate(model->mesh[mesh_index].offset);
         shader_set_uniform_mat4(state.phong_shader, "model", model_matrix);
 

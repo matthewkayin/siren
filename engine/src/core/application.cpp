@@ -18,8 +18,6 @@ struct Application {
     uint32_t fps;
     siren::MouseMode mouse_mode;
 
-    siren::Font* debug_font;
-
     bool (*init)();
     bool (*update)(float delta);
     bool (*render)();
@@ -66,8 +64,6 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
         .screen_size = config.screen_size,
         .window_size = config.window_size
     });
-
-    app.debug_font = font_system_acquire_font("font/hack.ttf", 10);
 
     if (!app.init()) {
         SIREN_ERROR("Application failed to initialize");
