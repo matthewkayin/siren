@@ -3,23 +3,16 @@ REM Build Everything
 
 ECHO "Building everything..."
 
-
-@REM PUSHD engine
-@REM CALL build.bat
-@REM POPD
-@REM IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
-
-@REM PUSHD testbed
-@REM CALL build.bat
-@REM POPD
-@REM IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
-
 REM Engine
-make -f "makefile.engine.windows.mak" all
+make -f "makefile.library.windows.mak" all ASSEMBLY="engine" ADDL_INC_FLAGS="-Iengine\include" ADDL_LINK_FLAGS="-luser32 -lSDL2 -lSDL2_ttf -lassimp-vc143-mtd -Lengine/lib/windows"
+IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
+
+REM Daedalus
+make -f "makefile.executable.windows.mak" all ASSEMBLY="daedalus" ADDL_INC_FLAGS="-Iengine/src" ADDL_LINK_FLAGS="-lassimp-vc143-mtd -Lengine/lib/windows"
 IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
 
 REM Sandbox
-make -f "makefile.sandbox.windows.mak" all
+make -f "makefile.executable.windows.mak" all ASSEMBLY="sandbox" ADDL_INC_FLAGS="-Iengine/src" ADDL_LINK_FLAGS=""
 IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
 
 ECHO "All assemblies built successfully."

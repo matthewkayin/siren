@@ -152,7 +152,7 @@ void siren::logger_output(siren::LogLevel level, const char* message, ...) {
         fprintf(logfile, "%s", log_message);
         fflush(logfile);
     } else {
-        SIREN_WARN("Called logger_output() without initializing logger. Log statement will not be written to file.");
+        logger_console_write("[WARN]: Called logger_output() without initializing logger. Log statement will not be written to file.", LOG_LEVEL_WARN);
     }
 }
 
