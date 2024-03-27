@@ -42,7 +42,6 @@ void siren::Camera::look_at(vec3 point) {
 }
 
 void siren::Camera::apply_pitch(float value) {
-    static const float PITCH_MAX = 89.0f;
     pitch = clampf(pitch + value, -89.0f, 89.0f);
     dirty = true;
 }

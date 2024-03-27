@@ -12,12 +12,11 @@
 static siren::Hashtable<siren::Texture> textures(128);
 
 siren::Texture siren::texture_acquire(const char* path) {
-    SIREN_TRACE("Requested texture %s", path);
     // check if texture has been loaded
-    uint32_t index = textures.get_index_of_key(path);
-    if (index != siren::Hashtable<siren::Texture>::ENTRY_NOT_FOUND) {
+    uint32_t index = textures.get_index(path);
+    if (index != SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
         SIREN_TRACE("Texture already loaded, returning copy.");
-        return textures.get_data_at_index(index);
+        return textures.get_data(index);
     }
 
     // determine full path
@@ -43,6 +42,7 @@ siren::Texture siren::texture_acquire(const char* path) {
         texture_format = GL_RGBA;
     } else {
         SIREN_ERROR("Texture format of texture %s not recognized.", full_path.c_str());
+        return 0;
     }
 
     uint32_t texture;

@@ -42,9 +42,6 @@ void siren::logger_quit() {
 }
 
 void siren::logger_output(siren::LogLevel level, const char* message, ...) {
-    static char decimal_representation[] = "0123456789";
-    static char convert_buffer[50];
-
     const char* level_prefix[4] = {"[ERROR]: ", "[WARN]: ", "[INFO]: ", "[TRACE]: "};
     bool is_error = level == LOG_LEVEL_ERROR;
 
@@ -127,7 +124,7 @@ void siren::logger_output(siren::LogLevel level, const char* message, ...) {
                     case '4': {
                         mat4* m = va_arg(arg_ptr, mat4*);
                         for (int i = 0; i < 4; i++) {
-                            out_ptr += sprintf(out_ptr, "[%f, %f, %f, %f]\n", m[0][i], m[1][i], m[2][i], m[3][i]);
+                            out_ptr += sprintf(out_ptr, "[%f, %f, %f, %f]\n", (*m)[0][i], (*m)[1][i], (*m)[2][i], (*m)[3][i]);
                         }
                     }
                 }

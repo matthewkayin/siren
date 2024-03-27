@@ -12,7 +12,6 @@
 #include <cstring>
 #include <cstdio>
 
-static bool initialized = false;
 static siren::Hashtable<siren::Font> fonts(16);
 
 siren::Font* siren::font_acquire(const char* path, uint16_t size) {
@@ -22,9 +21,9 @@ siren::Font* siren::font_acquire(const char* path, uint16_t size) {
     sprintf(key, "%s:%u", path, size);
 
     // Check if font has been loaded
-    uint32_t index = fonts.get_index_of_key(key);
-    if (index != siren::Hashtable<siren::Font>::ENTRY_NOT_FOUND) {
-        return &fonts.get_data_at_index(index);
+    uint32_t index = fonts.get_index(key);
+    if (index != SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
+        return &fonts.get_data(index);
     }
 
     // Begin creating a new font
@@ -84,5 +83,5 @@ siren::Font* siren::font_acquire(const char* path, uint16_t size) {
 
     // Place the font in the hashtable
     index = fonts.insert(key, font);
-    return &fonts.get_data_at_index(index);
+    return &fonts.get_data(index);
 }

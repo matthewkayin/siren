@@ -1,11 +1,17 @@
 #pragma once
 
+#ifndef SIREN_MAX_BONE_INFLUENCE
+#define SIREN_MAX_BONE_INFLUENCE 4
+#endif 
+
 #include "defines.h"
 
 #include "math/vector2.h"
 #include "math/vector3.h"
 #include "math/vector4.h"
+#include "math/matrix.h"
 #include "containers/darray.h"
+#include "containers/hashtable.h"
 #include "renderer/texture.h"
 
 namespace siren {
@@ -25,8 +31,14 @@ namespace siren {
         Texture texture_emissive;
     };
 
+    struct Bone {
+        int id;
+        mat4 offset;
+    };
+
     struct Model {
         DArray<Mesh> mesh;
+        Hashtable<Bone> bones;
     };
 
     SIREN_API Model* model_acquire(const char* path);

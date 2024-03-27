@@ -13,12 +13,38 @@
 
 static siren::Hashtable<siren::Model> models(32);
 
+siren::mat4 assimp_mat4_to_siren_mat4(aiMatrix4x4 m) {
+    siren::mat4 result;
+
+    result[0][0] = m.a1;
+    result[1][0] = m.a2;
+    result[2][0] = m.a3;
+    result[3][0] = m.a4;
+    
+    result[0][1] = m.b1;
+    result[1][1] = m.b2;
+    result[2][1] = m.b3;
+    result[3][1] = m.b4;
+
+    result[0][2] = m.c1;
+    result[1][2] = m.c2;
+    result[2][2] = m.c3;
+    result[3][2] = m.c4;
+
+    result[0][3] = m.d1;
+    result[1][3] = m.d2;
+    result[2][3] = m.d3;
+    result[3][3] = m.d4;
+
+    return result;
+}
+
 bool model_load(siren::Model* model, const char* path);
 
 siren::Model* siren::model_acquire(const char* path) {
-    uint32_t index = models.get_index_of_key(path);
-    if (index != siren::Hashtable<siren::Model>::ENTRY_NOT_FOUND) {
-        return &models.get_data_at_index(index);
+    uint32_t index = models.get_index(path);
+    if (index != SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
+        return &models.get_data(index);
     }
 
     Model model;
@@ -27,7 +53,7 @@ siren::Model* siren::model_acquire(const char* path) {
     }
 
     index = models.insert(path, model);
-    return &models.get_data_at_index(index);
+    return &models.get_data(index);
 }
 
 bool model_load(siren::Model* model, const char* path) {
@@ -36,7 +62,6 @@ bool model_load(siren::Model* model, const char* path) {
     std::string short_path_directory = short_path.substr(0, short_path.find_last_of("/") + 1);
 
     SIREN_TRACE("Loading model %s...", full_path.c_str());
-    SIREN_TRACE("Short path directory is: %s", short_path_directory.c_str());
 
     // Load the model file
     Assimp::Importer importer;
@@ -71,6 +96,8 @@ bool model_load(siren::Model* model, const char* path) {
         siren::vec3 position;
         siren::vec3 normal;
         siren::vec2 texture_coordinate;
+        int bone_ids[SIREN_MAX_BONE_INFLUENCE];
+        float bone_weights[SIREN_MAX_BONE_INFLUENCE];
     };
     for (uint32_t i = 0; i < meshes.size(); i++) {
         SIREN_TRACE("Creating mesh index %u...", i);
@@ -82,7 +109,9 @@ bool model_load(siren::Model* model, const char* path) {
             vertices.push_back((VertexData) {
                 .position = siren::vec3(meshes[i]->mVertices[v].x, meshes[i]->mVertices[v].y, meshes[i]->mVertices[v].z),
                 .normal = siren::vec3(meshes[i]->mNormals[v].x, meshes[i]->mNormals[v].y, meshes[i]->mNormals[v].z),
-                .texture_coordinate = siren::vec2(meshes[i]->mTextureCoords[0][v].x, meshes[i]->mTextureCoords[0][v].y)
+                .texture_coordinate = siren::vec2(meshes[i]->mTextureCoords[0][v].x, meshes[i]->mTextureCoords[0][v].y),
+                .bone_ids = { -1, -1, -1, -1 },
+                .bone_weights = { 0.0f, 0.0f, 0.0f, 0.0f }
             });
         }
 
@@ -109,8 +138,43 @@ bool model_load(siren::Model* model, const char* path) {
             }
         }
 
-        SIREN_TRACE("Vertex count: %u | Index count: %u | Mesh offset: %v3", vertices.size(), indices.size(), mesh_offset);
+        // ~ Read the bones ~
+        for (uint32_t assimp_bone_index = 0; assimp_bone_index < meshes[i]->mNumBones; assimp_bone_index++) {
+            int bone_id = -1;
 
+            const char* bone_name = meshes[i]->mBones[assimp_bone_index]->mName.C_Str();
+            uint32_t bone_hash_index = model->bones.get_index(bone_name);
+            if (bone_hash_index == SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
+                siren::Bone new_bone = (siren::Bone) {
+                    .id = (int)model->bones.size(),
+                    .offset = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
+                };
+                SIREN_TRACE("New bone with name %s id %i offset \n%m4", bone_name, new_bone.id, new_bone.offset);
+                bone_hash_index = model->bones.insert(bone_name, new_bone);
+            } 
+            bone_id = model->bones.get_data(bone_hash_index).id;
+
+            SIREN_ASSERT(bone_id != -1);
+
+            aiVertexWeight* weights = meshes[i]->mBones[assimp_bone_index]->mWeights;
+            int num_weights = meshes[i]->mBones[assimp_bone_index]->mNumWeights;
+            for (uint32_t weight_index = 0; weight_index < num_weights; weight_index++) {
+                int vertex_id = weights[weight_index].mVertexId;
+                float bone_weight = weights[weight_index].mWeight;
+
+                SIREN_ASSERT(vertex_id < vertices.size());
+
+                // Place the bone data in an empty slot in the vertex's bone array
+                for (uint32_t vertex_bone_index = 0; vertex_bone_index < SIREN_MAX_BONE_INFLUENCE; vertex_bone_index++) {
+                    if (vertices[vertex_id].bone_ids[vertex_bone_index] == -1) {
+                        vertices[vertex_id].bone_ids[vertex_bone_index] = bone_id;
+                        vertices[vertex_id].bone_weights[vertex_bone_index] = bone_weight;
+                        break;
+                    }
+                }
+            }
+        }
+        
         // setup the mesh in OpenGL
         siren::Mesh mesh;
         mesh.index_count = indices.size();
@@ -132,6 +196,10 @@ bool model_load(siren::Model* model, const char* path) {
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)(6 * sizeof(float)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribIPointer(3, 4, GL_INT, sizeof(VertexData), (void*)offsetof(VertexData, bone_ids));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)offsetof(VertexData, bone_weights));
 
         // get material data
         aiMaterial* material = scene->mMaterials[meshes[i]->mMaterialIndex];
@@ -140,24 +208,20 @@ bool model_load(siren::Model* model, const char* path) {
         aiColor4D ambient_color(0.0f, 0.0f, 0.0f, 0.0f);
         material->Get(AI_MATKEY_COLOR_AMBIENT, ambient_color);
         mesh.color_ambient = siren::vec3(ambient_color.r, ambient_color.g, ambient_color.b);
-        SIREN_TRACE("Ambient color %v3", mesh.color_ambient);
 
         // Material diffuse color
         aiColor4D diffuse_color(0.0f, 0.0f, 0.0f, 0.0f);
         material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse_color);
         mesh.color_diffuse = siren::vec3(diffuse_color.r, diffuse_color.g, diffuse_color.b);
-        SIREN_TRACE("Diffuse color %v3", mesh.color_diffuse);
 
         // Material specular color
         aiColor4D specular_color(0.0f, 0.0f, 0.0f, 0.0f);
         material->Get(AI_MATKEY_COLOR_SPECULAR, specular_color);
         mesh.color_specular = siren::vec3(specular_color.r, specular_color.g, specular_color.b);
-        SIREN_TRACE("Specular color %v3", mesh.color_specular);
 
         // Material shininess
         material->Get(AI_MATKEY_SHININESS, mesh.shininess);
         material->Get(AI_MATKEY_SHININESS_STRENGTH, mesh.shininess_strength);
-        SIREN_TRACE("Shininess %f, strength: %f", mesh.shininess, mesh.shininess_strength);
 
         if (material->GetTextureCount(aiTextureType_DIFFUSE) == 0) {
             mesh.texture_diffuse = siren::texture_acquire("texture/empty.png");
@@ -184,7 +248,7 @@ bool model_load(siren::Model* model, const char* path) {
 
     glBindVertexArray(0);
 
-    SIREN_TRACE("Loaded model %s", path);
+    SIREN_TRACE("Model loaded successfully.");
 
     return true;
 }
