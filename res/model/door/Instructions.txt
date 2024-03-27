@@ -1,0 +1,3 @@
+To use Emission texture:
+Multiply the Base color and the emission texture and place that into the emission slot.
+To glow, increase the intensity of the emission. (not the texture)

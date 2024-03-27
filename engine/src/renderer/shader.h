@@ -16,5 +16,6 @@ namespace siren {
     void shader_set_uniform_ivec2(Shader id, const char* name, ivec2 value);
     void shader_set_uniform_vec2(Shader id, const char* name, vec2 value);
     void shader_set_uniform_vec3(Shader id, const char* name, vec3 value);
+    void shader_set_uniform_vec4(Shader id, const char* name, vec4 value);
     void shader_set_uniform_mat4(Shader id, const char* name, mat4 value);
 }

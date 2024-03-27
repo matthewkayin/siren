@@ -4,6 +4,7 @@
 
 #include "math/vector2.h"
 #include "math/vector3.h"
+#include "math/vector4.h"
 #include "containers/darray.h"
 #include "renderer/texture.h"
 
@@ -14,7 +15,14 @@ namespace siren {
         uint32_t ebo;
         uint32_t index_count;
         vec3 offset;
-        Texture map_diffuse;
+
+        vec3 color_ambient;
+        vec3 color_diffuse;
+        vec3 color_specular;
+        float shininess;
+        float shininess_strength;
+        Texture texture_diffuse;
+        Texture texture_emissive;
     };
 
     struct Model {

@@ -26,7 +26,7 @@ using siren::quat;
 bool game_init() {
     gamestate.debug_font = siren::font_acquire("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
-    gamestate.model = siren::model_acquire("model/cube/Metal_box.obj");
+    gamestate.model = siren::model_acquire("model/door/portal_door_combined_model.dae");
     gamestate.model_transform = (siren::Transform) {
         .position = vec3(0.0f, 0.0f, -5.0f),
         .rotation = quat(),
@@ -75,7 +75,7 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    gamestate.model_transform.rotation = gamestate.model_transform.rotation * quat::from_axis_angle(siren::VEC3_UP.normalized(), 1.0f * delta, true) * quat::from_axis_angle(siren::VEC3_FORWARD, 1.0f * delta, true);
+    gamestate.model_transform.rotation = gamestate.model_transform.rotation * quat::from_axis_angle(siren::VEC3_UP.normalized(), 1.0f * delta, true);
 
     return true;
 }

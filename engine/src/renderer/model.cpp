@@ -135,16 +135,49 @@ bool model_load(siren::Model* model, const char* path) {
 
         // get material data
         aiMaterial* material = scene->mMaterials[meshes[i]->mMaterialIndex];
+
+        // Material ambient color
+        aiColor4D ambient_color(0.0f, 0.0f, 0.0f, 0.0f);
+        material->Get(AI_MATKEY_COLOR_AMBIENT, ambient_color);
+        mesh.color_ambient = siren::vec3(ambient_color.r, ambient_color.g, ambient_color.b);
+        SIREN_TRACE("Ambient color %v3", mesh.color_ambient);
+
+        // Material diffuse color
+        aiColor4D diffuse_color(0.0f, 0.0f, 0.0f, 0.0f);
+        material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse_color);
+        mesh.color_diffuse = siren::vec3(diffuse_color.r, diffuse_color.g, diffuse_color.b);
+        SIREN_TRACE("Diffuse color %v3", mesh.color_diffuse);
+
+        // Material specular color
+        aiColor4D specular_color(0.0f, 0.0f, 0.0f, 0.0f);
+        material->Get(AI_MATKEY_COLOR_SPECULAR, specular_color);
+        mesh.color_specular = siren::vec3(specular_color.r, specular_color.g, specular_color.b);
+        SIREN_TRACE("Specular color %v3", mesh.color_specular);
+
+        // Material shininess
+        material->Get(AI_MATKEY_SHININESS, mesh.shininess);
+        material->Get(AI_MATKEY_SHININESS_STRENGTH, mesh.shininess_strength);
+        SIREN_TRACE("Shininess %f, strength: %f", mesh.shininess, mesh.shininess_strength);
+
         if (material->GetTextureCount(aiTextureType_DIFFUSE) == 0) {
-            mesh.map_diffuse = siren::texture_acquire("texture/empty.png");
+            mesh.texture_diffuse = siren::texture_acquire("texture/empty.png");
         } else {
             aiString texture_path;
             material->GetTexture(aiTextureType_DIFFUSE, 0, &texture_path);
-            SIREN_TRACE("Texture path is %s", texture_path.C_Str());
             std::string full_texture_path = short_path_directory + std::string(texture_path.C_Str());
-            SIREN_TRACE("Full texture path is %s", full_texture_path.c_str());
-            mesh.map_diffuse = siren::texture_acquire(full_texture_path.c_str());
+            mesh.texture_diffuse = siren::texture_acquire(full_texture_path.c_str());
         }
+
+        if (material->GetTextureCount(aiTextureType_EMISSIVE) == 0) {
+            mesh.texture_emissive = siren::texture_acquire("texture/empty_dark.png");
+        } else {
+            aiString texture_path;
+            material->GetTexture(aiTextureType_EMISSIVE, 0, &texture_path);
+            std::string full_texture_path = short_path_directory + std::string(texture_path.C_Str());
+            mesh.texture_emissive = siren::texture_acquire(full_texture_path.c_str());
+        }
+
+        SIREN_TRACE("bones? %u anims? %u", meshes[i]->mNumBones, scene->mNumAnimations);
 
         model->mesh.push(mesh);
     } // end for each mesh 
