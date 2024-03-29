@@ -235,7 +235,7 @@ bool siren::renderer_init(RendererConfig config) {
     mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
     SIREN_INFO("projection:\n%m4", &projection);
     shader_use(state.phong_shader);
-    shader_set_uniform_mat4(state.phong_shader, "projection", projection);
+    shader_set_uniform_mat4(state.phong_shader, "projection", &projection);
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
@@ -329,12 +329,12 @@ void siren::renderer_render_cube(siren::Camera* camera, siren::Transform& transf
     if (camera->is_dirty()) {
         mat4 view = camera->get_view_matrix();
         vec3 camera_position = camera->get_position();
-        shader_set_uniform_mat4(state.phong_shader, "view", view);
+        shader_set_uniform_mat4(state.phong_shader, "view", &view);
         shader_set_uniform_vec3(state.phong_shader, "view_position", camera_position);
     }
 
     shader_set_uniform_int(state.phong_shader, "u_texture", 0);
-    shader_set_uniform_mat4(state.phong_shader, "model", model_matrix);
+    shader_set_uniform_mat4(state.phong_shader, "model", &model_matrix);
     shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, 0.0f));
     shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
     shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.027f);
@@ -358,7 +358,7 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
     if (camera->is_dirty()) {
         mat4 view = camera->get_view_matrix();
         vec3 camera_position = camera->get_position();
-        shader_set_uniform_mat4(state.phong_shader, "view", view);
+        shader_set_uniform_mat4(state.phong_shader, "view", &view);
         shader_set_uniform_vec3(state.phong_shader, "view_position", camera_position);
     }
 
@@ -369,9 +369,38 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
     shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.022f);
     shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.019f);
 
+    // bone matrices
+    mat4 bone_matrix[100];
+    struct BoneNode {
+        int id;
+        mat4 parent_transform;
+    };
+    DArray<BoneNode> bone_stack;
+    bone_stack.push((BoneNode) {
+        .id = 0,
+        .parent_transform = mat4(1.0f)
+    });
+    while (!bone_stack.empty()) {
+        BoneNode next = bone_stack[0];
+        bone_stack.remove_at(0);
+
+        bone_matrix[next.id] = next.parent_transform;
+
+        for (uint32_t child_index = 0; child_index < 4; child_index++) {
+            if (model->bones[next.id].child_ids[child_index] == -1) {
+                break;
+            }
+
+            bone_stack.push((BoneNode) {
+                .id = model->bones[next.id].child_ids[child_index],
+                .parent_transform = bone_matrix[next.id]
+            });
+        }
+    }
+    shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_matrix, model->bones.size());
+
     for (uint32_t mesh_index = 0; mesh_index < model->mesh.size(); mesh_index++) {
-        model_matrix = model_matrix * mat4::translate(model->mesh[mesh_index].offset);
-        shader_set_uniform_mat4(state.phong_shader, "model", model_matrix);
+        shader_set_uniform_mat4(state.phong_shader, "model", &model_matrix);
 
         // material uniforms
         shader_set_uniform_vec3(state.phong_shader, "material_ambient", model->mesh[mesh_index].color_ambient);

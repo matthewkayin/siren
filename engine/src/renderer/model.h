@@ -20,7 +20,6 @@ namespace siren {
         uint32_t vbo;
         uint32_t ebo;
         uint32_t index_count;
-        vec3 offset;
 
         vec3 color_ambient;
         vec3 color_diffuse;
@@ -32,13 +31,14 @@ namespace siren {
     };
 
     struct Bone {
-        int id;
+        int child_ids[4];
         mat4 offset;
     };
 
     struct Model {
         DArray<Mesh> mesh;
-        Hashtable<Bone> bones;
+        DArray<Bone> bones;
+        Hashtable<int> bone_id_lookup;
     };
 
     SIREN_API Model* model_acquire(const char* path);
