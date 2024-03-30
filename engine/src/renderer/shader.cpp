@@ -5,71 +5,37 @@
 
 #include <glad/glad.h>
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <fstream>
+#include <string>
 
-#define IO_READ_CHUNK_SIZE 262144
+// TODO: make a lookup / hashtable to ensure shaders only get loaded once
 
 bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
     // determine full path
     std::string full_path = siren::resource_get_base_path() + std::string(path);
 
-    // open shader file
-    FILE* shader_file = fopen(full_path.c_str(), "rb");
-    if (shader_file == NULL) {
-        SIREN_ERROR("Unable to open shader at path %s", full_path.c_str());
+    // read the shader file
+    std::string shader_source;
+    std::ifstream shader_file;
+    std::string line;
+
+    shader_file.open(full_path);
+    if (!shader_file.is_open()) {
+        SIREN_ERROR("Error opening shader file at path %s", full_path.c_str());
         return false;
     }
 
-    // TODO: move this out into a multipurpose file read function
-    char* data = NULL;
-    char* temp;
-    size_t used = 0;
-    size_t size = 0;
-    size_t n;
-
-    while (true) {
-        if (used + IO_READ_CHUNK_SIZE + 1 > size) {
-            size = used + IO_READ_CHUNK_SIZE + 1;
-
-            // Overflow check
-            if (size <= used) {
-                free(data);
-                SIREN_ERROR("Shader file %s too large\n", full_path.c_str());
-                return false;
-            }
-
-            temp = (char*)realloc(data, size);
-            if (temp == NULL) {
-                SIREN_ERROR("Realloc failure while reading file %s", full_path.c_str());
-                free(data);
-                return false;
-            }
-            data = temp;
-        }
-
-        n = fread(data + used, 1, IO_READ_CHUNK_SIZE, shader_file);
-        if (n == 0) {
-            break;
-        }
-
-        used += n;
+    while (std::getline(shader_file, line)) {
+        shader_source += line + "\n";
     }
 
-    temp = (char*)realloc(data, used + 1);
-    if (temp == NULL) {
-        SIREN_ERROR("Realloc failure while reading file %s", full_path.c_str());
-        free(data);
-        return false;
-    }
-    data = temp;
-    data[used] = '\0';
-
+    shader_file.close();
+    
     // compile the shader
+    const char* shader_source_cstr = shader_source.c_str();
     int success;
     *id = glCreateShader(shader_type);
-    glShaderSource(*id, 1, &data, NULL);
+    glShaderSource(*id, 1, &shader_source_cstr, NULL);
     glCompileShader(*id);
     glGetShaderiv(*id, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -78,9 +44,6 @@ bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
         SIREN_ERROR("Shader %s failed to compile: %s", path, info_log);
         return false;
     }
-
-    // cleanup
-    fclose(shader_file);
 
     return true;
 }

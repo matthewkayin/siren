@@ -2,25 +2,27 @@
 
 #include "core/logger.h"
 #include "core/resource.h"
-#include "containers/hashtable.h"
 
 #include <glad/glad.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-static siren::Hashtable<siren::Texture> textures(128);
+#include <unordered_map>
+
+static std::unordered_map<std::string, siren::Texture> textures;
 
 siren::Texture siren::texture_acquire(const char* path) {
     // check if texture has been loaded
-    uint32_t index = textures.get_index(path);
-    if (index != SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
+    std::string key = std::string(path);
+    auto it = textures.find(key);
+    if (it != textures.end()) {
         SIREN_TRACE("Texture already loaded, returning copy.");
-        return textures.get_data(index);
+        return it->second;
     }
 
     // determine full path
-    std::string full_path = resource_get_base_path() + std::string(path);
+    std::string full_path = resource_get_base_path() + key;
     SIREN_TRACE("Loading texture %s...", full_path.c_str());
 
     stbi_set_flip_vertically_on_load(false);
@@ -62,7 +64,7 @@ siren::Texture siren::texture_acquire(const char* path) {
 
     stbi_image_free(data);
 
-    textures.insert(path, texture);
+    textures[key] = texture;
     SIREN_TRACE("Texture loaded successfully.");
     return texture;
 }

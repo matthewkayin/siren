@@ -8,6 +8,8 @@
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
 
+#include <vector>
+
 struct RendererState {
     SDL_Window* window;
     SDL_GLContext context;
@@ -375,14 +377,14 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
         int id;
         mat4 parent_transform;
     };
-    DArray<BoneNode> bone_stack;
-    bone_stack.push((BoneNode) {
+    std::vector<BoneNode> bone_queue;
+    bone_queue.push_back((BoneNode) {
         .id = 0,
         .parent_transform = mat4(1.0f)
     });
-    while (!bone_stack.empty()) {
-        BoneNode next = bone_stack[0];
-        bone_stack.remove_at(0);
+    while (!bone_queue.empty()) {
+        BoneNode next = bone_queue[0];
+        bone_queue.erase(bone_queue.begin());
 
         bone_matrix[next.id] = next.parent_transform;
 
@@ -391,7 +393,7 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
                 break;
             }
 
-            bone_stack.push((BoneNode) {
+            bone_queue.push_back((BoneNode) {
                 .id = model->bones[next.id].child_ids[child_index],
                 .parent_transform = bone_matrix[next.id]
             });

@@ -10,9 +10,12 @@
 #include "math/vector3.h"
 #include "math/vector4.h"
 #include "math/matrix.h"
-#include "containers/darray.h"
-#include "containers/hashtable.h"
+#include "math/transform.h"
 #include "renderer/texture.h"
+
+#include <vector>
+#include <unordered_map>
+#include <string>
 
 namespace siren {
     struct Mesh {
@@ -32,14 +35,18 @@ namespace siren {
 
     struct Bone {
         int child_ids[4];
+        Transform transform;
+        std::vector<std::vector<Transform>> keyframes;
         mat4 offset;
     };
 
     struct Model {
-        DArray<Mesh> mesh;
-        DArray<Bone> bones;
-        Hashtable<int> bone_id_lookup;
+        std::vector<Mesh> mesh;
+        std::vector<Bone> bones;
+        std::unordered_map<std::string, int> bone_id_lookup;
+        std::unordered_map<std::string, int> animation_id_lookup;
     };
 
     SIREN_API Model* model_acquire(const char* path);
+    SIREN_API void model_add_animation(Model* model, const char* path);
 }

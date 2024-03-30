@@ -2,16 +2,16 @@
 
 #include "core/logger.h"
 #include "core/resource.h"
-
-#include "containers/hashtable.h"
+#include "core/asserts.h"
 
 #include <glad/glad.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <vector>
+#include <unordered_map>
 
-static siren::Hashtable<siren::Model> models(32);
+static std::unordered_map<std::string, siren::Model> models;
 
 siren::mat4 assimp_mat4_to_siren_mat4(aiMatrix4x4 m) {
     siren::mat4 result;
@@ -42,9 +42,10 @@ siren::mat4 assimp_mat4_to_siren_mat4(aiMatrix4x4 m) {
 bool model_load(siren::Model* model, const char* path);
 
 siren::Model* siren::model_acquire(const char* path) {
-    uint32_t index = models.get_index(path);
-    if (index != SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
-        return &models.get_data(index);
+    std::string key = std::string(path);
+    auto it = models.find(key);
+    if (it != models.end()) {
+        return &it->second;
     }
 
     Model model;
@@ -52,13 +53,13 @@ siren::Model* siren::model_acquire(const char* path) {
         return nullptr;
     }
 
-    index = models.insert(path, model);
-    return &models.get_data(index);
+    models[key] = model;
+    return &models[key];
 }
 
 bool model_load(siren::Model* model, const char* path) {
     std::string short_path = std::string(path);
-    std::string full_path = siren::resource_get_base_path() + short_path;
+    std::string full_path = std::string(siren::resource_get_base_path()) + short_path;
     std::string short_path_directory = short_path.substr(0, short_path.find_last_of("/") + 1);
 
     SIREN_TRACE("Loading model %s...", full_path.c_str());
@@ -72,19 +73,19 @@ bool model_load(siren::Model* model, const char* path) {
     }
 
     // Collect all the meshes from the scene hierarchy 
-    siren::DArray<aiMesh*> meshes;
-    siren::DArray<aiNode*> node_stack;
-    node_stack.push(scene->mRootNode);
+    std::vector<aiMesh*> meshes;
+    std::vector<aiNode*> node_stack;
+    node_stack.push_back(scene->mRootNode);
 
     while (!node_stack.empty()) {
         aiNode* current = node_stack[node_stack.size() - 1];
-        node_stack.pop();
+        node_stack.pop_back();
 
         for (uint32_t i = 0; i < current->mNumMeshes; i++) {
-            meshes.push(scene->mMeshes[current->mMeshes[i]]);
+            meshes.push_back(scene->mMeshes[current->mMeshes[i]]);
         }
         for (uint32_t i = 0; i < current->mNumChildren; i++) {
-            node_stack.push(current->mChildren[i]);
+            node_stack.push_back(current->mChildren[i]);
         }
     }
 
@@ -141,18 +142,22 @@ bool model_load(siren::Model* model, const char* path) {
         for (uint32_t assimp_bone_index = 0; assimp_bone_index < meshes[i]->mNumBones; assimp_bone_index++) {
             int bone_id = -1;
 
-            const char* bone_name = meshes[i]->mBones[assimp_bone_index]->mName.C_Str();
-            uint32_t bone_hash_index = model->bone_id_lookup.get_index(bone_name);
-            if (bone_hash_index == SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
+            std::string bone_name = std::string(meshes[i]->mBones[assimp_bone_index]->mName.C_Str());
+            auto bone_id_it = model->bone_id_lookup.find(bone_name);
+            if (bone_id_it == model->bone_id_lookup.end()) {
                 siren::Bone new_bone = (siren::Bone) {
                     .child_ids = { -1, -1, -1, -1 },
+                    .transform = siren::Transform(),
+                    .keyframes = std::vector<std::vector<siren::Transform>>(),
                     .offset = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
                 };
-                SIREN_TRACE("New bone with name %s id %i", bone_name, model->bones.size());
-                model->bones.push(new_bone);
-                bone_hash_index = model->bone_id_lookup.insert(bone_name, model->bones.size() - 1);
-            } 
-            bone_id = model->bone_id_lookup.get_data(bone_hash_index);
+                SIREN_TRACE("New bone with name %s id %i", bone_name.c_str(), model->bones.size());
+                model->bones.push_back(new_bone);
+                bone_id = model->bones.size() - 1;
+                model->bone_id_lookup[bone_name] = bone_id;
+            } else {
+                bone_id = bone_id_it->second;
+            }
 
             SIREN_ASSERT(bone_id != -1);
 
@@ -176,37 +181,37 @@ bool model_load(siren::Model* model, const char* path) {
         }
 
         // Traverse the node stack to get the bone hierarchy
-        node_stack.push(scene->mRootNode);
+        node_stack.push_back(scene->mRootNode);
 
         while (!node_stack.empty()) {
             aiNode* current_node = node_stack[node_stack.size() - 1];
-            node_stack.pop();
+            node_stack.pop_back();
 
             // Add children to the stack
             for (uint32_t node_child_index = 0; node_child_index < current_node->mNumChildren; node_child_index++) {
-                node_stack.push(current_node->mChildren[node_child_index]);
+                node_stack.push_back(current_node->mChildren[node_child_index]);
             }
 
             // Check to see if this node is even a bone
-            uint32_t bone_hash_index = model->bone_id_lookup.get_index(current_node->mName.C_Str());
-            if (bone_hash_index == SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
+            auto bone_id_it = model->bone_id_lookup.find(std::string(current_node->mName.C_Str()));
+            if (bone_id_it == model->bone_id_lookup.end()) {
                 continue;
             }
 
             // Make sure that the bone child_ids array is big enough for the number of children on this node
             SIREN_ASSERT(current_node->mNumChildren < 5);
-            int bone_id = model->bone_id_lookup.get_data(bone_hash_index);
+            int bone_id = bone_id_it->second;
             uint32_t bone_child_count = 0;
             // Now iterate through each of the node's children...
             for (uint32_t child_index = 0; child_index < current_node->mNumChildren; child_index++) {
                 // If the node child is not a bone, skip it
-                uint32_t bone_child_hash_index = model->bone_id_lookup.get_index(current_node->mChildren[child_index]->mName.C_Str());
-                if (bone_child_hash_index == SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
+                auto bone_child_id_it = model->bone_id_lookup.find(std::string(current_node->mChildren[child_index]->mName.C_Str()));
+                if (bone_child_id_it == model->bone_id_lookup.end()) {
                     continue;
                 }
 
                 // If it is a bone, add its index to the child_ids array
-                int bone_child_id = model->bone_id_lookup.get_data(bone_child_hash_index);
+                int bone_child_id = bone_child_id_it->second;
                 model->bones[bone_id].child_ids[bone_child_count] = bone_child_id;
                 bone_child_count++;
             }
@@ -279,7 +284,7 @@ bool model_load(siren::Model* model, const char* path) {
             mesh.texture_emissive = siren::texture_acquire(full_texture_path.c_str());
         }
 
-        model->mesh.push(mesh);
+        model->mesh.push_back(mesh);
     } // end for each mesh 
 
     glBindVertexArray(0);
@@ -287,4 +292,8 @@ bool model_load(siren::Model* model, const char* path) {
     SIREN_TRACE("Model loaded successfully.");
 
     return true;
+}
+
+void siren::model_add_animation(siren::Model* model, const char* path) {
+
 }

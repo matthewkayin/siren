@@ -1,14 +1,14 @@
 // Created by Crowbar 0.71
 version 1
 nodes
-  0 "portal_door_export" -1
+  0 "ID10" -1
   1 "portal_door_export_LOD1" -1
-  2 "portal_door_root" 0
-  3 "lighting_orgin_point" 2
-  4 "portal_door_left" 2
-  5 "portal_door_right" 2
-  6 "central_spinner_left" 4
-  7 "central_spinner_right" 5
+  2 "ID11" 0
+  3 "ID12" 2
+  4 "ID13" 2
+  5 "ID15" 2
+  6 "ID14" 4
+  7 "ID16" 5
 end
 skeleton
   time 0

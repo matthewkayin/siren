@@ -3,7 +3,6 @@
 #include "core/logger.h"
 #include "core/resource.h"
 #include "math/math.h"
-#include "containers/hashtable.h"
 
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
@@ -11,19 +10,19 @@
 
 #include <cstring>
 #include <cstdio>
+#include <unordered_map>
 
-static siren::Hashtable<siren::Font> fonts(16);
+static std::unordered_map<std::string, siren::Font> fonts;
 
 siren::Font* siren::font_acquire(const char* path, uint16_t size) {
     static const SDL_Color COLOR_WHITE = { 255, 255, 255, 255 };
 
-    char key[256];
-    sprintf(key, "%s:%u", path, size);
+    std::string key = std::string(path) + std::string(":") + std::to_string(size);
 
     // Check if font has been loaded
-    uint32_t index = fonts.get_index(key);
-    if (index != SIREN_HASHTABLE_ENTRY_NOT_FOUND) {
-        return &fonts.get_data(index);
+    auto it = fonts.find(key);
+    if (it != fonts.end()) {
+        return &it->second;
     }
 
     // Begin creating a new font
@@ -82,6 +81,6 @@ siren::Font* siren::font_acquire(const char* path, uint16_t size) {
     TTF_CloseFont(ttf_font);
 
     // Place the font in the hashtable
-    index = fonts.insert(key, font);
-    return &fonts.get_data(index);
+    fonts[key] = font;
+    return &fonts[key];
 }
