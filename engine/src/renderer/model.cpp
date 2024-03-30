@@ -10,6 +10,7 @@
 #include <assimp/postprocess.h>
 #include <vector>
 #include <unordered_map>
+#include <fstream>
 
 static std::unordered_map<std::string, siren::Model> models;
 
@@ -287,6 +288,12 @@ bool model_load(siren::Model* model, const char* path) {
         model->mesh.push_back(mesh);
     } // end for each mesh 
 
+    if (!model_add_animation(model, "open", "../res/model/door/anims/open.smd")) {
+        return false;
+    }
+    model->animation = 0;
+    model->animation_frame = 0;
+
     glBindVertexArray(0);
 
     SIREN_TRACE("Model loaded successfully.");
@@ -294,6 +301,118 @@ bool model_load(siren::Model* model, const char* path) {
     return true;
 }
 
-void siren::model_add_animation(siren::Model* model, const char* path) {
+bool siren::model_add_animation(siren::Model* model, const char* name, const char* path) {
+    enum ParseMode {
+        PARSE_MODE_NONE,
+        PARSE_MODE_NODES,
+        PARSE_MODE_SKELETON
+    };
+    ParseMode parse_mode = PARSE_MODE_NONE;
+    uint32_t animation_frame = 0;
 
+    std::ifstream animation_file;
+    std::string line;
+
+    std::unordered_map<int, int> node_to_bone_map;
+
+    animation_file.open(path);
+    if (!animation_file.is_open()) {
+        SIREN_ERROR("Unable to open animation file at path %s.", path);
+        return false;
+    }
+
+    // Create a new set of keyframes for this animation
+    int animation_id = model->bones[0].keyframes.size();
+    for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
+        model->bones[bone_index].keyframes.push_back(std::vector<Transform>());
+    }
+    model->animation_id_lookup[std::string(name)] = animation_id;
+
+    while (std::getline(animation_file, line)) {
+        if (line[0] == '/' && line[1] == '/') {
+            continue;
+        } else if (line == "end") {
+            parse_mode = PARSE_MODE_NONE;
+        } else if (line == "nodes") {
+            parse_mode = PARSE_MODE_NODES;
+        } else if (line == "skeleton") {
+            parse_mode = PARSE_MODE_SKELETON;
+        } else {
+            if (parse_mode == PARSE_MODE_NONE) {
+                continue;
+            }
+
+            // Remove leading whitespace
+            size_t non_space_index = line.find_first_not_of(' ');
+            line = line.substr(non_space_index);
+
+            // Break line into words
+            std::vector<std::string> words;
+            while (line.size() != 0) {
+                size_t space_index = line.find_first_of(' ');
+                if (space_index == std::string::npos) {
+                    words.push_back(line);
+                    line = "";
+                } else {
+                    words.push_back(line.substr(0, space_index));
+                    line = line.substr(space_index + 1);
+                }
+            }
+
+            // Parse the words
+            if (parse_mode == PARSE_MODE_NODES) {
+                // node entry takes the form:
+                // <node-id> "<node-name>" <node-root>
+                // here we ignore any nodes that aren't bones
+                // and we create a mapping from the node_id in the anim file to the bone_id in the model data
+                int node_id = std::stoi(words[0]);
+                std::string animation_bone_name = words[1].substr(1, words[1].size() - 2); // This substr removes the quotes from the string
+
+                auto model_bone_id_it = model->bone_id_lookup.find(animation_bone_name);
+                if (model_bone_id_it == model->bone_id_lookup.end()) {
+                    continue;
+                }
+                int model_bone_id = model_bone_id_it->second;
+                
+                node_to_bone_map[node_id] = model_bone_id;
+            } else if (parse_mode == PARSE_MODE_SKELETON) {
+                if (words[0] == "time") {
+                    // time entry takes the form:
+                    // time <frame-number>
+                    animation_frame = std::stoi(words[1]);
+
+                    // for each frame we add a new entry to the keyframes of all the bones
+                    // the first frame in an animation will always have an entry for each bone's initial transform
+                    // subsequency frames are allowed to omit a transform for a bone, which means the bone stays in the same place
+                    // to account for this, keyframes will be initialized using the previous frame 
+                    for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
+                        model->bones[bone_index].keyframes[animation_id].push_back(animation_frame == 0 ? (Transform) {
+                            .position = vec3(),
+                            .rotation = quat(),
+                            .scale = vec3(1.0f)
+                        } : model->bones[bone_index].keyframes[animation_id][animation_frame - 1]);
+                    }
+                } else {
+                    // Get the bone_id
+                    int animation_bone_id = std::stoi(words[0]);
+                    auto bone_id_it = node_to_bone_map.find(animation_bone_id);
+                    if (bone_id_it == node_to_bone_map.end()) {
+                        continue;
+                    }
+                    int bone_id = bone_id_it->second;
+
+                    // Add the keyframe
+                    model->bones[bone_id].keyframes[animation_id][animation_frame] = (Transform) {
+                        .position = vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])),
+                        .rotation = quat::from_axis_angle(VEC3_FORWARD, std::stof(words[4]), true) * quat::from_axis_angle(VEC3_RIGHT, std::stof(words[5]), true) * quat::from_axis_angle(VEC3_UP, std::stof(words[6]), true),
+                        .scale = vec3(1.0f)
+                    };
+                }
+            }
+        }
+    }
+
+    animation_file.close();
+
+    return true;
 }

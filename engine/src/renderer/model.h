@@ -45,8 +45,11 @@ namespace siren {
         std::vector<Bone> bones;
         std::unordered_map<std::string, int> bone_id_lookup;
         std::unordered_map<std::string, int> animation_id_lookup;
+        int animation;
+        uint32_t animation_frame;
+        float timer;
     };
 
     SIREN_API Model* model_acquire(const char* path);
-    SIREN_API void model_add_animation(Model* model, const char* path);
+    SIREN_API bool model_add_animation(Model* model, const char* name, const char* path);
 }

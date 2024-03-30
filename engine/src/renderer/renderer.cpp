@@ -386,7 +386,7 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
         BoneNode next = bone_queue[0];
         bone_queue.erase(bone_queue.begin());
 
-        bone_matrix[next.id] = next.parent_transform;
+        bone_matrix[next.id] = next.parent_transform * transform_to_matrix(model->bones[next.id].keyframes[model->animation][model->animation_frame]);
 
         for (uint32_t child_index = 0; child_index < 4; child_index++) {
             if (model->bones[next.id].child_ids[child_index] == -1) {

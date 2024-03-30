@@ -75,7 +75,16 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    gamestate.model_transform.rotation = gamestate.model_transform.rotation * quat::from_axis_angle(siren::VEC3_UP.normalized(), 1.0f * delta, true);
+    // gamestate.model_transform.rotation = gamestate.model_transform.rotation * quat::from_axis_angle(siren::VEC3_UP.normalized(), 1.0f * delta, true);
+    gamestate.model->timer += delta;
+    if (gamestate.model->timer > 0.25f) {
+        gamestate.model->timer -= 0.25f;
+        gamestate.model->animation_frame = (gamestate.model->animation_frame + 1) % gamestate.model->bones[0].keyframes[gamestate.model->animation].size();
+        SIREN_TRACE("frame++");
+        if (gamestate.model->animation_frame == 0) {
+            SIREN_TRACE("RESET");
+        }
+    }
 
     return true;
 }
