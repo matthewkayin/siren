@@ -426,6 +426,7 @@ siren::ModelTransform siren::model_transform_create(siren::Model* model) {
 
     result.model = model;
     result.root_transform = transform_identity();
+    result.root_transform.rotation = quat::from_axis_angle(VEC3_RIGHT, deg_to_rad(-90), true);
     result.root_transform.position.z = -5.0f;
     result.root_transform.scale = vec3(0.05f);
 
@@ -455,19 +456,29 @@ void siren::model_transform_animation_set(ModelTransform* model_transform, const
 }
 
 void siren::model_transform_animation_update(ModelTransform* model_transform, float delta) {
-    static const float FRAME_DURATION = 0.25f;
+    static const float FRAME_DURATION = 0.1f;
+    uint32_t animation_frame_count = model_animation_get_frame_count(model_transform->model, model_transform->animation);
 
     model_transform->animation_timer += delta;
     if (model_transform->animation_timer > FRAME_DURATION) {
         model_transform->animation_timer -= FRAME_DURATION;
 
         model_transform->animation_frame++;
-        if (model_transform->animation_frame == model_animation_get_frame_count(model_transform->model, model_transform->animation)) {
+        if (model_transform->animation_frame == animation_frame_count) {
             model_transform->animation_frame = 0;
         }
     }
 
     for (uint32_t bone_index = 0; bone_index < model_transform->bone_transform.size(); bone_index++) {
-        model_transform->bone_transform[bone_index] = model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame];
+        if (model_transform->animation_frame == animation_frame_count) {
+            model_transform->bone_transform[bone_index] = model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame];
+            continue;
+        }
+        float percent = model_transform->animation_timer / FRAME_DURATION;
+        model_transform->bone_transform[bone_index] = transform_lerp(
+            model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame],
+            model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame + 1],
+            percent
+        );
     }
 }

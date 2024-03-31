@@ -12,10 +12,12 @@ siren::mat4 siren::transform_to_matrix(const siren::Transform& transform) {
     return mat4::translate(transform.position) * transform.rotation.to_mat4() * mat4::scale(transform.scale);
 }
 
-/*
-glm::mat4 siren::glm_transform_to_matrix(const siren::GlmTransform& transform) {
-    glm::mat4 result = glm::mat4(1.0f);
-    glm::translate(result, transform.position);
-    glm::r
+siren::Transform siren::transform_lerp(const siren::Transform& from, const siren::Transform& to, float percent) {
+    Transform result;
+
+    result.position = from.position + ((to.position - from.position) * percent);
+    result.scale = from.scale + ((to.scale - from.scale) * percent);
+    result.rotation = quat::slerp(from.rotation, to.rotation, percent);
+
+    return result;
 }
-*/
