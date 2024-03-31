@@ -13,6 +13,7 @@ namespace siren {
         vec3 scale;
     };
 
+    SIREN_API Transform transform_identity();
     SIREN_API mat4 transform_to_matrix(const Transform& transform);
     // SIREN_API mat4 glm_transform_to_matrix(const GlmTransform& transform);
 }

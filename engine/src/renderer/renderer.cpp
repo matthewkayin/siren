@@ -352,8 +352,8 @@ void siren::renderer_render_cube(siren::Camera* camera, siren::Transform& transf
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void siren::renderer_render_model(siren::Camera* camera, Transform& transform, siren::Model* model) {
-    mat4 model_matrix = transform_to_matrix(transform);
+void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, siren::ModelTransform& transform) {
+    mat4 model_matrix = transform_to_matrix(transform.root_transform);
 
     shader_use(state.phong_shader);
 
@@ -373,6 +373,7 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
 
     // bone matrices
     mat4 bone_matrix[100];
+    mat4 bone_final_matrix[100];
     struct BoneNode {
         int id;
         mat4 parent_transform;
@@ -386,7 +387,8 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
         BoneNode next = bone_queue[0];
         bone_queue.erase(bone_queue.begin());
 
-        bone_matrix[next.id] = next.parent_transform * transform_to_matrix(model->bones[next.id].keyframes[model->animation][model->animation_frame]);
+        bone_matrix[next.id] = (next.parent_transform * transform_to_matrix(transform.bone_transform[next.id])); 
+        bone_final_matrix[next.id] = bone_matrix[next.id] * model->bones[next.id].offset;
 
         for (uint32_t child_index = 0; child_index < 4; child_index++) {
             if (model->bones[next.id].child_ids[child_index] == -1) {
@@ -399,7 +401,7 @@ void siren::renderer_render_model(siren::Camera* camera, Transform& transform, s
             });
         }
     }
-    shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_matrix, model->bones.size());
+    shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_final_matrix, model->bones.size());
 
     for (uint32_t mesh_index = 0; mesh_index < model->mesh.size(); mesh_index++) {
         shader_set_uniform_mat4(state.phong_shader, "model", &model_matrix);

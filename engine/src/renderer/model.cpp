@@ -148,7 +148,6 @@ bool model_load(siren::Model* model, const char* path) {
             if (bone_id_it == model->bone_id_lookup.end()) {
                 siren::Bone new_bone = (siren::Bone) {
                     .child_ids = { -1, -1, -1, -1 },
-                    .transform = siren::Transform(),
                     .keyframes = std::vector<std::vector<siren::Transform>>(),
                     .offset = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
                 };
@@ -288,11 +287,9 @@ bool model_load(siren::Model* model, const char* path) {
         model->mesh.push_back(mesh);
     } // end for each mesh 
 
-    if (!model_add_animation(model, "open", "../res/model/door/anims/open.smd")) {
+    if (!model_animation_add(model, "open", "../res/model/door/anims/open.smd")) {
         return false;
     }
-    model->animation = 0;
-    model->animation_frame = 0;
 
     glBindVertexArray(0);
 
@@ -301,7 +298,7 @@ bool model_load(siren::Model* model, const char* path) {
     return true;
 }
 
-bool siren::model_add_animation(siren::Model* model, const char* name, const char* path) {
+bool siren::model_animation_add(siren::Model* model, const char* name, const char* path) {
     enum ParseMode {
         PARSE_MODE_NONE,
         PARSE_MODE_NODES,
@@ -404,7 +401,10 @@ bool siren::model_add_animation(siren::Model* model, const char* name, const cha
                     // Add the keyframe
                     model->bones[bone_id].keyframes[animation_id][animation_frame] = (Transform) {
                         .position = vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])),
-                        .rotation = quat::from_axis_angle(VEC3_FORWARD, std::stof(words[4]), true) * quat::from_axis_angle(VEC3_RIGHT, std::stof(words[5]), true) * quat::from_axis_angle(VEC3_UP, std::stof(words[6]), true),
+                        .rotation = 
+                        quat::from_axis_angle(VEC3_FORWARD, std::stof(words[6]), true) *
+                        quat::from_axis_angle(VEC3_UP, std::stof(words[5]), true) * 
+                        quat::from_axis_angle(VEC3_RIGHT, std::stof(words[4]), true),
                         .scale = vec3(1.0f)
                     };
                 }
@@ -415,4 +415,59 @@ bool siren::model_add_animation(siren::Model* model, const char* name, const cha
     animation_file.close();
 
     return true;
+}
+
+uint32_t siren::model_animation_get_frame_count(Model* model, int animation_id) {
+    return model->bones[0].keyframes[animation_id].size();
+}
+
+siren::ModelTransform siren::model_transform_create(siren::Model* model) {
+    ModelTransform result;
+
+    result.model = model;
+    result.root_transform = transform_identity();
+    result.root_transform.position.z = -5.0f;
+    result.root_transform.scale = vec3(0.05f);
+
+    std::vector<Transform> bone_transform;
+    for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
+        bone_transform.push_back(transform_identity());
+    }
+    result.bone_transform = bone_transform;
+
+    result.animation = ModelTransform::ANIMATION_NONE;
+    result.animation_frame = 0;
+    result.animation_timer = 0.0f;
+
+    return result;
+}
+
+void siren::model_transform_animation_set(ModelTransform* model_transform, const char* name) {
+    auto animation_id_it = model_transform->model->animation_id_lookup.find(std::string(name));
+    if (animation_id_it == model_transform->model->animation_id_lookup.end()) {
+        SIREN_WARN("called model_transform_set_animation() but animation '%s' does not exist on the model.", name);
+        return;
+    }
+
+    model_transform->animation = animation_id_it->second;
+    model_transform->animation_frame = 0;
+    model_transform->animation_timer = 0.0f;
+}
+
+void siren::model_transform_animation_update(ModelTransform* model_transform, float delta) {
+    static const float FRAME_DURATION = 0.25f;
+
+    model_transform->animation_timer += delta;
+    if (model_transform->animation_timer > FRAME_DURATION) {
+        model_transform->animation_timer -= FRAME_DURATION;
+
+        model_transform->animation_frame++;
+        if (model_transform->animation_frame == model_animation_get_frame_count(model_transform->model, model_transform->animation)) {
+            model_transform->animation_frame = 0;
+        }
+    }
+
+    for (uint32_t bone_index = 0; bone_index < model_transform->bone_transform.size(); bone_index++) {
+        model_transform->bone_transform[bone_index] = model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame];
+    }
 }

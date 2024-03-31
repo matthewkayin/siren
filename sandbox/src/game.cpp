@@ -15,7 +15,7 @@ struct GameState {
     siren::Font* debug_font;
     siren::Camera camera;
     siren::Model* model;
-    siren::Transform model_transform;
+    siren::ModelTransform model_transform;
 };
 static GameState gamestate;
 
@@ -27,11 +27,8 @@ bool game_init() {
     gamestate.debug_font = siren::font_acquire("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
     gamestate.model = siren::model_acquire("model/door/portal_door_combined_model.dae");
-    gamestate.model_transform = (siren::Transform) {
-        .position = vec3(0.0f, 0.0f, -5.0f),
-        .rotation = quat(),
-        .scale = vec3(0.05f)
-    };
+    gamestate.model_transform = siren::model_transform_create(gamestate.model);
+    siren::model_transform_animation_set(&gamestate.model_transform, "open");
 
     return true;
 }
@@ -75,22 +72,13 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    // gamestate.model_transform.rotation = gamestate.model_transform.rotation * quat::from_axis_angle(siren::VEC3_UP.normalized(), 1.0f * delta, true);
-    gamestate.model->timer += delta;
-    if (gamestate.model->timer > 0.25f) {
-        gamestate.model->timer -= 0.25f;
-        gamestate.model->animation_frame = (gamestate.model->animation_frame + 1) % gamestate.model->bones[0].keyframes[gamestate.model->animation].size();
-        SIREN_TRACE("frame++");
-        if (gamestate.model->animation_frame == 0) {
-            SIREN_TRACE("RESET");
-        }
-    }
+    siren::model_transform_animation_update(&gamestate.model_transform, delta);
 
     return true;
 }
 
 bool game_render() {
-    siren::renderer_render_model(&gamestate.camera, gamestate.model_transform, gamestate.model);
+    siren::renderer_render_model(&gamestate.camera, gamestate.model, gamestate.model_transform);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());

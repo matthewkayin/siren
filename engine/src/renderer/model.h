@@ -35,7 +35,6 @@ namespace siren {
 
     struct Bone {
         int child_ids[4];
-        Transform transform;
         std::vector<std::vector<Transform>> keyframes;
         mat4 offset;
     };
@@ -45,11 +44,26 @@ namespace siren {
         std::vector<Bone> bones;
         std::unordered_map<std::string, int> bone_id_lookup;
         std::unordered_map<std::string, int> animation_id_lookup;
+    };
+
+    struct ModelTransform {
+        static const int ANIMATION_NONE = -1;
+
+        // TODO, change this to using uint32_t IDs as a model reference so that if a Model gets freed, we can check within the transform code that we are not referencing a dangling model
+        Model* model;
+        Transform root_transform;
+        std::vector<Transform> bone_transform;
+
         int animation;
         uint32_t animation_frame;
-        float timer;
+        float animation_timer;
     };
 
     SIREN_API Model* model_acquire(const char* path);
-    SIREN_API bool model_add_animation(Model* model, const char* name, const char* path);
+    SIREN_API bool model_animation_add(Model* model, const char* name, const char* path);
+    SIREN_API uint32_t model_animation_get_frame_count(Model* model, int animation_id);
+
+    SIREN_API ModelTransform model_transform_create(Model* model);
+    SIREN_API void model_transform_animation_set(ModelTransform* model_transform, const char* name);
+    SIREN_API void model_transform_animation_update(ModelTransform* model_transform, float delta);
 }
