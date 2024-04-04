@@ -14,8 +14,7 @@
 struct GameState {
     siren::Font* debug_font;
     siren::Camera camera;
-    siren::Model* model;
-    siren::ModelTransform model_transform;
+    siren::Texture test_texture;
 };
 static GameState gamestate;
 
@@ -26,9 +25,7 @@ using siren::quat;
 bool game_init() {
     gamestate.debug_font = siren::font_acquire("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
-    gamestate.model = siren::model_acquire("model/door/portal_door_combined_model.dae");
-    gamestate.model_transform = siren::model_transform_create(gamestate.model);
-    siren::model_transform_animation_set(&gamestate.model_transform, "open");
+    gamestate.test_texture = siren::texture_acquire("model/gun/potatos_vmodel.jpg");
 
     return true;
 }
@@ -72,13 +69,11 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    siren::model_transform_animation_update(&gamestate.model_transform, delta);
-
     return true;
 }
 
 bool game_render() {
-    siren::renderer_render_model(&gamestate.camera, gamestate.model, gamestate.model_transform);
+    siren::renderer_render_texture(gamestate.test_texture);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());

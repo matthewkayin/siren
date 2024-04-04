@@ -263,7 +263,7 @@ void siren::renderer_prepare_frame() {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ZERO);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
@@ -322,6 +322,17 @@ void siren::renderer_render_text(const char* text, siren::Font* font, siren::ive
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+void siren::renderer_render_texture(siren::Texture texture) {
+    glUseProgram(state.screen_shader);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(state.quad_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 
 void siren::renderer_render_cube(siren::Camera* camera, siren::Transform& transform, siren::Texture texture) {
     mat4 model_matrix = transform_to_matrix(transform);
@@ -390,7 +401,7 @@ void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, si
         bone_matrix[next.id] = (next.parent_transform * transform_to_matrix(transform.bone_transform[next.id])); 
         bone_final_matrix[next.id] = bone_matrix[next.id] * model->bones[next.id].offset;
 
-        for (uint32_t child_index = 0; child_index < 4; child_index++) {
+        for (uint32_t child_index = 0; child_index < model->bones[next.id].child_ids.size(); child_index++) {
             if (model->bones[next.id].child_ids[child_index] == -1) {
                 break;
             }

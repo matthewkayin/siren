@@ -90,6 +90,7 @@ bool model_load(siren::Model* model, const char* path) {
         }
     }
 
+
     // Initialize mesh array
     model->mesh.reserve(meshes.size());
 
@@ -147,11 +148,11 @@ bool model_load(siren::Model* model, const char* path) {
             auto bone_id_it = model->bone_id_lookup.find(bone_name);
             if (bone_id_it == model->bone_id_lookup.end()) {
                 siren::Bone new_bone = (siren::Bone) {
-                    .child_ids = { -1, -1, -1, -1 },
+                    .parent_id = -1,
+                    .child_ids = std::vector<int>(),
                     .keyframes = std::vector<std::vector<siren::Transform>>(),
                     .offset = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
                 };
-                SIREN_TRACE("New bone with name %s id %i", bone_name.c_str(), model->bones.size());
                 model->bones.push_back(new_bone);
                 bone_id = model->bones.size() - 1;
                 model->bone_id_lookup[bone_name] = bone_id;
@@ -184,8 +185,8 @@ bool model_load(siren::Model* model, const char* path) {
         node_stack.push_back(scene->mRootNode);
 
         while (!node_stack.empty()) {
-            aiNode* current_node = node_stack[node_stack.size() - 1];
-            node_stack.pop_back();
+            aiNode* current_node = node_stack[0];
+            node_stack.erase(node_stack.begin());
 
             // Add children to the stack
             for (uint32_t node_child_index = 0; node_child_index < current_node->mNumChildren; node_child_index++) {
@@ -198,10 +199,7 @@ bool model_load(siren::Model* model, const char* path) {
                 continue;
             }
 
-            // Make sure that the bone child_ids array is big enough for the number of children on this node
-            SIREN_ASSERT(current_node->mNumChildren < 5);
             int bone_id = bone_id_it->second;
-            uint32_t bone_child_count = 0;
             // Now iterate through each of the node's children...
             for (uint32_t child_index = 0; child_index < current_node->mNumChildren; child_index++) {
                 // If the node child is not a bone, skip it
@@ -212,11 +210,51 @@ bool model_load(siren::Model* model, const char* path) {
 
                 // If it is a bone, add its index to the child_ids array
                 int bone_child_id = bone_child_id_it->second;
-                model->bones[bone_id].child_ids[bone_child_count] = bone_child_id;
-                bone_child_count++;
+                model->bones[bone_child_id].parent_id = bone_id;
             }
 
-            SIREN_TRACE("Bone %i children: %i %i %i %i", bone_id, model->bones[bone_id].child_ids[0], model->bones[bone_id].child_ids[1], model->bones[bone_id].child_ids[2], model->bones[bone_id].child_ids[3]);
+            SIREN_TRACE("Bone %i %s parent: %i", bone_id, current_node->mName.C_Str(), model->bones[bone_id].parent_id);
+        }
+
+        struct DbgNode {
+            int bone_id;
+            uint32_t depth;
+        };
+        std::vector<DbgNode> debug_stack;
+        debug_stack.push_back((DbgNode) {
+            .bone_id = 0,
+            .depth = 0
+        });
+
+        SIREN_INFO("Bone print\n---");
+        while (!debug_stack.empty()) {
+            DbgNode current = debug_stack[0];
+            debug_stack.erase(debug_stack.begin());
+
+            char depth_string[32];
+            uint32_t depth_counter = 0;
+            while (depth_counter < current.depth) {
+                depth_string[depth_counter * 2] = ' ';
+                depth_string[(depth_counter * 2) + 1] = ' ';
+                depth_counter++;
+            }
+            depth_string[depth_counter * 2] = '\0';
+
+            std::string bone_name;
+            for (auto it = model->bone_id_lookup.begin(); it != model->bone_id_lookup.end(); it++) {
+                if (it->second == current.bone_id) {
+                    bone_name = it->first;
+                    break;
+                }
+            }
+            SIREN_INFO("%s%s", depth_string, bone_name.c_str());
+
+            for (uint32_t c = 0; c < model->bones[current.bone_id].child_ids.size(); c++) {
+                debug_stack.push_back((DbgNode) {
+                    .bone_id = model->bones[current.bone_id].child_ids[c],
+                    .depth = current.depth + 1
+                });
+            }
         }
 
         // setup the mesh in OpenGL
@@ -287,9 +325,9 @@ bool model_load(siren::Model* model, const char* path) {
         model->mesh.push_back(mesh);
     } // end for each mesh 
 
-    if (!model_animation_add(model, "open", "../res/model/door/anims/open.smd")) {
-        return false;
-    }
+    // if (!model_animation_add(model, "open", "../res/model/door/anims/open.smd")) {
+        // return false;
+    // }
 
     glBindVertexArray(0);
 
@@ -319,6 +357,7 @@ bool siren::model_animation_add(siren::Model* model, const char* name, const cha
     }
 
     // Create a new set of keyframes for this animation
+    SIREN_TRACE("MODEL BONE SIZE %u", model->bones.size());
     int animation_id = model->bones[0].keyframes.size();
     for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
         model->bones[bone_index].keyframes.push_back(std::vector<Transform>());
@@ -402,9 +441,9 @@ bool siren::model_animation_add(siren::Model* model, const char* name, const cha
                     model->bones[bone_id].keyframes[animation_id][animation_frame] = (Transform) {
                         .position = vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])),
                         .rotation = 
-                        quat::from_axis_angle(VEC3_FORWARD, std::stof(words[6]), true) *
-                        quat::from_axis_angle(VEC3_UP, std::stof(words[5]), true) * 
-                        quat::from_axis_angle(VEC3_RIGHT, std::stof(words[4]), true),
+                        quat::from_axis_angle(VEC3_UP, std::stof(words[4]), true) *
+                        quat::from_axis_angle(VEC3_RIGHT, std::stof(words[5]), true) *
+                        quat::from_axis_angle(VEC3_FORWARD, std::stof(words[6]), true),
                         .scale = vec3(1.0f)
                     };
                 }
@@ -426,9 +465,6 @@ siren::ModelTransform siren::model_transform_create(siren::Model* model) {
 
     result.model = model;
     result.root_transform = transform_identity();
-    result.root_transform.rotation = quat::from_axis_angle(VEC3_RIGHT, deg_to_rad(-90), true);
-    result.root_transform.position.z = -5.0f;
-    result.root_transform.scale = vec3(0.05f);
 
     std::vector<Transform> bone_transform;
     for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {

@@ -34,7 +34,8 @@ namespace siren {
     };
 
     struct Bone {
-        int child_ids[4];
+        int parent_id;
+        std::vector<int> child_ids;
         std::vector<std::vector<Transform>> keyframes;
         mat4 offset;
     };
