@@ -9,7 +9,11 @@ siren::Transform siren::transform_identity() {
 }
 
 siren::mat4 siren::transform_to_matrix(const siren::Transform& transform) {
-    return mat4::translate(transform.position) * transform.rotation.to_mat4() * mat4::scale(transform.scale);
+    // return mat4::translate(transform.position) * transform.rotation.to_mat4() * mat4::scale(transform.scale);
+    return 
+    mat4::scale(transform.scale) *
+    (transform.rotation.to_mat4() * 
+    mat4::translate(transform.position));
 }
 
 siren::Transform siren::transform_lerp(const siren::Transform& from, const siren::Transform& to, float percent) {

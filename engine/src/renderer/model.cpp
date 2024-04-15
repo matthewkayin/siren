@@ -149,9 +149,9 @@ bool model_load(siren::Model* model, const char* path) {
             if (bone_id_it == model->bone_id_lookup.end()) {
                 siren::Bone new_bone = (siren::Bone) {
                     .parent_id = -1,
-                    .child_ids = std::vector<int>(),
                     .keyframes = std::vector<std::vector<siren::Transform>>(),
-                    .offset = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
+                    // .initial_transform = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
+                    .initial_transform = siren::transform_identity()
                 };
                 model->bones.push_back(new_bone);
                 bone_id = model->bones.size() - 1;
@@ -226,37 +226,6 @@ bool model_load(siren::Model* model, const char* path) {
             .depth = 0
         });
 
-        SIREN_INFO("Bone print\n---");
-        while (!debug_stack.empty()) {
-            DbgNode current = debug_stack[0];
-            debug_stack.erase(debug_stack.begin());
-
-            char depth_string[32];
-            uint32_t depth_counter = 0;
-            while (depth_counter < current.depth) {
-                depth_string[depth_counter * 2] = ' ';
-                depth_string[(depth_counter * 2) + 1] = ' ';
-                depth_counter++;
-            }
-            depth_string[depth_counter * 2] = '\0';
-
-            std::string bone_name;
-            for (auto it = model->bone_id_lookup.begin(); it != model->bone_id_lookup.end(); it++) {
-                if (it->second == current.bone_id) {
-                    bone_name = it->first;
-                    break;
-                }
-            }
-            SIREN_INFO("%s%s", depth_string, bone_name.c_str());
-
-            for (uint32_t c = 0; c < model->bones[current.bone_id].child_ids.size(); c++) {
-                debug_stack.push_back((DbgNode) {
-                    .bone_id = model->bones[current.bone_id].child_ids[c],
-                    .depth = current.depth + 1
-                });
-            }
-        }
-
         // setup the mesh in OpenGL
         siren::Mesh mesh;
         mesh.index_count = indices.size();
@@ -329,6 +298,7 @@ bool model_load(siren::Model* model, const char* path) {
         // return false;
     // }
 
+    SIREN_INFO("Model anims %u", scene->mNumAnimations);
     glBindVertexArray(0);
 
     SIREN_TRACE("Model loaded successfully.");

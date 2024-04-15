@@ -1,7 +1,10 @@
 #include "texture.h"
 
+#define SIREN_VTF_MAX_SUPPORTED_RESOURCES 32
+
 #include "core/logger.h"
 #include "core/resource.h"
+#include "core/asserts.h"
 
 #include <glad/glad.h>
 
@@ -9,29 +12,45 @@
 #include <stb_image.h>
 
 #include <unordered_map>
+#include <cstdio>
 
 static std::unordered_map<std::string, siren::Texture> textures;
 
+siren::Texture texture_load(const char* path);
+
 siren::Texture siren::texture_acquire(const char* path) {
-    // check if texture has been loaded
     std::string key = std::string(path);
+
+    // determine full path
+    std::string full_path = resource_get_base_path() + key;
+    SIREN_TRACE("Loading texture %s...", full_path.c_str());
+
+    // check if texture has been loaded
     auto it = textures.find(key);
     if (it != textures.end()) {
         SIREN_TRACE("Texture already loaded, returning copy.");
         return it->second;
     }
 
-    // determine full path
-    std::string full_path = resource_get_base_path() + key;
-    SIREN_TRACE("Loading texture %s...", full_path.c_str());
+    Texture texture = texture_load(full_path.c_str());
 
-    stbi_set_flip_vertically_on_load(false);
+    if (texture != 0) {
+        textures[key] = texture;
+        SIREN_TRACE("Texture loaded successfully.");
+    }
+
+    return texture;
+}
+
+siren::Texture texture_load(const char* path) {
+    // TODO, call this only once?
+    stbi_set_flip_vertically_on_load(true);
     int width;
     int height;
     int number_of_components;
-    stbi_uc* data = stbi_load(full_path.c_str(), &width, &height, &number_of_components, 0);
+    stbi_uc* data = stbi_load(path, &width, &height, &number_of_components, 0);
     if (!data) {
-        SIREN_ERROR("Could not load texture %s", full_path.c_str());
+        SIREN_ERROR("Could not load texture %s", path);
         return 0;
     }
 
@@ -43,7 +62,7 @@ siren::Texture siren::texture_acquire(const char* path) {
     } else if (number_of_components == 4) {
         texture_format = GL_RGBA;
     } else {
-        SIREN_ERROR("Texture format of texture %s not recognized.", full_path.c_str());
+        SIREN_ERROR("Texture format of texture %s not recognized.", path);
         return 0;
     }
 
@@ -64,7 +83,5 @@ siren::Texture siren::texture_acquire(const char* path) {
 
     stbi_image_free(data);
 
-    textures[key] = texture;
-    SIREN_TRACE("Texture loaded successfully.");
     return texture;
 }

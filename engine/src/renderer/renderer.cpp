@@ -235,7 +235,6 @@ bool siren::renderer_init(RendererConfig config) {
         return false;
     }
     mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
-    SIREN_INFO("projection:\n%m4", &projection);
     shader_use(state.phong_shader);
     shader_set_uniform_mat4(state.phong_shader, "projection", &projection);
 
@@ -376,7 +375,7 @@ void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, si
     }
 
     shader_set_uniform_int(state.phong_shader, "material_texture", 0);
-    shader_set_uniform_int(state.phong_shader, "material_emissive", 0);
+    shader_set_uniform_int(state.phong_shader, "material_emissive", 1);
     shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, -8.0f));
     shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
     shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.022f);
@@ -389,28 +388,10 @@ void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, si
         int id;
         mat4 parent_transform;
     };
-    std::vector<BoneNode> bone_queue;
-    bone_queue.push_back((BoneNode) {
-        .id = 0,
-        .parent_transform = mat4(1.0f)
-    });
-    while (!bone_queue.empty()) {
-        BoneNode next = bone_queue[0];
-        bone_queue.erase(bone_queue.begin());
-
-        bone_matrix[next.id] = (next.parent_transform * transform_to_matrix(transform.bone_transform[next.id])); 
-        bone_final_matrix[next.id] = bone_matrix[next.id] * model->bones[next.id].offset;
-
-        for (uint32_t child_index = 0; child_index < model->bones[next.id].child_ids.size(); child_index++) {
-            if (model->bones[next.id].child_ids[child_index] == -1) {
-                break;
-            }
-
-            bone_queue.push_back((BoneNode) {
-                .id = model->bones[next.id].child_ids[child_index],
-                .parent_transform = bone_matrix[next.id]
-            });
-        }
+    for (int bone_id = 0; bone_id < model->bones.size(); bone_id++) {
+        mat4 parent_matrix = model->bones[bone_id].parent_id == -1 ? mat4(1.0f) : bone_final_matrix[model->bones[bone_id].parent_id];
+        bone_final_matrix[bone_id] = parent_matrix * transform_to_matrix(model->bones[bone_id].initial_transform);
+        // bone_final_matrix[bone_id] = mat4(1.0f);
     }
     shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_final_matrix, model->bones.size());
 
@@ -426,6 +407,8 @@ void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, si
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, model->mesh[mesh_index].texture_diffuse);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, model->mesh[mesh_index].texture_emissive);
         
         glBindVertexArray(model->mesh[mesh_index].vao);
         glDrawElements(GL_TRIANGLES, model->mesh[mesh_index].index_count, GL_UNSIGNED_INT, 0);

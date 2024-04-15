@@ -35,9 +35,8 @@ namespace siren {
 
     struct Bone {
         int parent_id;
-        std::vector<int> child_ids;
         std::vector<std::vector<Transform>> keyframes;
-        mat4 offset;
+        Transform initial_transform;
     };
 
     struct Model {
@@ -67,4 +66,11 @@ namespace siren {
     SIREN_API ModelTransform model_transform_create(Model* model);
     SIREN_API void model_transform_animation_set(ModelTransform* model_transform, const char* name);
     SIREN_API void model_transform_animation_update(ModelTransform* model_transform, float delta);
+
+    struct ValveModelAcquireParams {
+        const char* qc_path;
+        const char* smd_path;
+        const char* diffuse_path;
+    };
+    SIREN_API Model* valve_model_acquire(ValveModelAcquireParams params);
 }
