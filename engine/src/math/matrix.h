@@ -127,5 +127,47 @@ namespace siren {
 
             return result;
         }
+
+        SIREN_INLINE mat4 inversed() const {
+            float b00 = columns[0][0] * columns[1][1] - columns[0][1] * columns[1][0];
+            float b01 = columns[0][0] * columns[1][2] - columns[0][2] * columns[1][0];
+            float b02 = columns[0][0] * columns[1][3] - columns[0][3] * columns[1][0];
+            float b03 = columns[0][1] * columns[1][2] - columns[0][2] * columns[1][1];
+            float b04 = columns[0][1] * columns[1][3] - columns[0][3] * columns[1][1];
+            float b05 = columns[0][2] * columns[1][3] - columns[0][3] * columns[1][2];
+            float b06 = columns[2][0] * columns[3][1] - columns[2][1] * columns[3][0];
+            float b07 = columns[2][0] * columns[3][2] - columns[2][2] * columns[3][0];
+            float b08 = columns[2][0] * columns[3][3] - columns[2][3] * columns[3][0];
+            float b09 = columns[2][1] * columns[3][2] - columns[2][2] * columns[3][1];
+            float b10 = columns[2][1] * columns[3][3] - columns[2][3] * columns[3][1];
+            float b11 = columns[2][2] * columns[3][3] - columns[2][3] * columns[3][2];
+
+            float determinant = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+
+            mat4 result;
+            result.columns[0] = vec4(
+                    columns[1][1] * b11 - columns[1][2] * b10 + columns[1][3] * b09,
+                    columns[0][2] * b10 - columns[0][1] * b11 - columns[0][3] * b09,
+                    columns[3][1] * b05 - columns[3][2] * b04 + columns[3][3] * b03,
+                    columns[2][2] * b04 - columns[2][1] * b05 - columns[2][3] * b03);
+            result.columns[1] = vec4(
+                    columns[1][2] * b08 - columns[1][0] * b11 - columns[1][3] * b07,
+                    columns[0][0] * b11 - columns[0][2] * b08 + columns[0][3] * b07,
+                    columns[3][2] * b02 - columns[3][0] * b05 - columns[3][3] * b01,
+                    columns[2][0] * b05 - columns[2][2] * b02 + columns[2][3] * b01);
+            result.columns[2] = vec4(
+                    columns[1][0] * b10 - columns[1][1] * b08 + columns[1][3] * b06,
+                    columns[0][1] * b08 - columns[0][0] * b10 - columns[0][3] * b06,
+                    columns[3][0] * b04 - columns[3][1] * b02 + columns[3][3] * b00,
+                    columns[2][1] * b02 - columns[2][0] * b04 - columns[2][3] * b00);
+            result.columns[3] = vec4(
+                    columns[1][1] * b07 - columns[1][0] * b09 - columns[1][2] * b06,
+                    columns[0][0] * b09 - columns[0][1] * b07 + columns[0][2] * b06,
+                    columns[3][1] * b01 - columns[3][0] * b03 - columns[3][2] * b00,
+                    columns[2][0] * b03 - columns[2][1] * b01 + columns[2][2] * b00);
+            result = result * (1.0f / determinant);
+
+            return result;
+        }
     };
 }

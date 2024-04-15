@@ -25,3 +25,29 @@ siren::Transform siren::transform_lerp(const siren::Transform& from, const siren
 
     return result;
 }
+
+// basis transform
+
+siren::BasisTransform siren::basis_transform_identity() {
+    return (BasisTransform) {
+        .origin = vec3(0.0f),
+        .basis = mat4(1.0f)
+    };
+}
+
+siren::BasisTransform siren::basis_transform_create(siren::vec3 origin, siren::vec3 rotation) {
+    BasisTransform result = (BasisTransform) {
+        .origin = origin,
+        .basis = mat4(1.0f)
+    };
+
+    result.basis.rotate(rotation.x, VEC3_RIGHT);
+    result.basis.rotate(rotation.y, VEC3_UP);
+    result.basis.rotate(rotation.z, VEC3_FORWARD);
+
+    return result;
+}
+
+siren::mat4 siren::basis_transform_to_matrix(const siren::BasisTransform& transform) {
+    return mat4::translate(transform.origin) * transform.basis;
+}

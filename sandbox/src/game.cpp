@@ -32,8 +32,8 @@ bool game_init() {
         .diffuse_path = "texture/portal_gun/v_portalgun.png"
     });
     gamestate.transform = siren::model_transform_create(gamestate.test);
-    gamestate.transform.root_transform.position = vec3(1.0f, -4.0f, -6.0f);
-    gamestate.transform.root_transform.scale = vec3(0.1f);
+    gamestate.transform.root_transform.origin = vec3(1.0f, -4.0f, -6.0f);
+    gamestate.transform.root_transform.basis = siren::mat4::scale(0.1f);
 
     return true;
 }

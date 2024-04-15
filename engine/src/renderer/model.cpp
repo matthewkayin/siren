@@ -151,7 +151,7 @@ bool model_load(siren::Model* model, const char* path) {
                     .parent_id = -1,
                     .keyframes = std::vector<std::vector<siren::Transform>>(),
                     // .initial_transform = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
-                    .initial_transform = siren::transform_identity()
+                    .initial_transform = siren::basis_transform_identity()
                 };
                 model->bones.push_back(new_bone);
                 bone_id = model->bones.size() - 1;
@@ -434,11 +434,11 @@ siren::ModelTransform siren::model_transform_create(siren::Model* model) {
     ModelTransform result;
 
     result.model = model;
-    result.root_transform = transform_identity();
+    result.root_transform = basis_transform_identity();
 
-    std::vector<Transform> bone_transform;
+    std::vector<BasisTransform> bone_transform;
     for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-        bone_transform.push_back(transform_identity());
+        bone_transform.push_back(basis_transform_identity());
     }
     result.bone_transform = bone_transform;
 
@@ -477,14 +477,14 @@ void siren::model_transform_animation_update(ModelTransform* model_transform, fl
 
     for (uint32_t bone_index = 0; bone_index < model_transform->bone_transform.size(); bone_index++) {
         if (model_transform->animation_frame == animation_frame_count) {
-            model_transform->bone_transform[bone_index] = model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame];
+            // model_transform->bone_transform[bone_index] = model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame];
             continue;
         }
         float percent = model_transform->animation_timer / FRAME_DURATION;
-        model_transform->bone_transform[bone_index] = transform_lerp(
+        /*model_transform->bone_transform[bone_index] = transform_lerp(
             model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame],
             model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame + 1],
             percent
-        );
+        );*/
     }
 }

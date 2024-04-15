@@ -36,7 +36,8 @@ namespace siren {
     struct Bone {
         int parent_id;
         std::vector<std::vector<Transform>> keyframes;
-        Transform initial_transform;
+        BasisTransform initial_transform;
+        mat4 inverse_bind_transform;
     };
 
     struct Model {
@@ -51,8 +52,8 @@ namespace siren {
 
         // TODO, change this to using uint32_t IDs as a model reference so that if a Model gets freed, we can check within the transform code that we are not referencing a dangling model
         Model* model;
-        Transform root_transform;
-        std::vector<Transform> bone_transform;
+        BasisTransform root_transform;
+        std::vector<BasisTransform> bone_transform;
 
         int animation;
         uint32_t animation_frame;

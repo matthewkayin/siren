@@ -106,7 +106,7 @@ bool valve_model_load(siren::Model* model, siren::ValveModelAcquireParams params
             model->bones.push_back((siren::Bone) {
                 .parent_id = std::stoi(words[2]),
                 .keyframes = std::vector<std::vector<siren::Transform>>(),
-                .initial_transform = siren::transform_identity()
+                .initial_transform = siren::basis_transform_identity()
             });
         } else if (smd_parse_mode == SMD_PARSE_MODE_SKELETON) {
             std::vector<std::string> words;
@@ -121,14 +121,17 @@ bool valve_model_load(siren::Model* model, siren::ValveModelAcquireParams params
 
                     SIREN_ASSERT(bone_id == std::stoi(words[0]));
 
-                    model->bones[bone_id].initial_transform = (siren::Transform) {
+                    model->bones[bone_id].initial_transform = siren::basis_transform_create(siren::vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])), siren::vec3(std::stof(words[4]), std::stof(words[5]), std::stof(words[6])));
+                    model->bones[bone_id].inverse_bind_transform = siren::basis_transform_to_matrix(model->bones[bone_id].initial_transform).inversed();
+                    SIREN_TRACE("initial x inverse \n%m4", siren::basis_transform_to_matrix(model->bones[bone_id].initial_transform) * model->bones[bone_id].inverse_bind_transform);
+                    /* model->bones[bone_id].initial_transform = (siren::Transform) {
                         .position = siren::vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])),
                         .rotation = 
                             siren::quat::from_axis_angle(siren::VEC3_RIGHT, std::stof(words[4]), true) *
                             siren::quat::from_axis_angle(siren::VEC3_UP, std::stof(words[5]), true) *
                             siren::quat::from_axis_angle(siren::VEC3_FORWARD, std::stof(words[6]), true),
                         .scale = siren::vec3(1.0f)
-                    };
+                    }; */
                 }
             }
         } else if (smd_parse_mode == SMD_PARSE_MODE_TRIANGLES) {
