@@ -5,6 +5,8 @@
 #include "math/math.h"
 #include "math/matrix.h"
 
+#include "core/asserts.h"
+
 namespace siren {
     struct quat {
         float x;
@@ -99,7 +101,8 @@ namespace siren {
 
         SIREN_INLINE mat4 to_mat4() const {
             mat4 result(1.0f);
-            quat n = normalized();
+            // quat n = normalized();
+            quat n = quat(x, y, z, w);
 
             float nxx = n.x * n.x;
             float nyy = n.y * n.y;
@@ -159,6 +162,71 @@ namespace siren {
 
             quat result = quat(sin_half_angle * axis.x, sin_half_angle * axis.y, sin_half_angle * axis.z, cos_half_angle);
             return normalize ? result.normalized() : result;
+        }
+
+        SIREN_INLINE static quat from_euler(float x, float y, float z) {
+            float cx = cos(x * 0.5f);
+            float sx = sin(x * 0.5f);
+            float cy = cos(y * 0.5f);
+            float sy = sin(y * 0.5f);
+            float cz = cos(z * 0.5f);
+            float sz = sin(z * 0.5f);
+
+            return quat(
+                sx * cx * cz - cx * sy * sz,
+                cx * sy * cz - sx * cy * sz,
+                cx * cy * sz - sx * sy * cz,
+                cx * cy * cz + sx * sy * sz
+            );
+        }
+
+        SIREN_INLINE static quat from_mat4(const mat4& m) {
+            float values[4] = { 
+                m[0][0] - m[1][1] - m[2][2],
+                m[1][1] - m[0][0] - m[2][2],
+                m[2][2] - m[0][0] - m[1][1],
+                m[0][0] + m[1][1] + m[2][2] 
+            };
+
+            uint32_t biggest_index = 0;
+            for (uint32_t index = 1; index < 4; index++) {
+                if (values[index] > values[biggest_index]) {
+                    biggest_index = index;
+                }
+            }
+
+            float biggest_value = sqrtf(values[biggest_index] + 1.0f) * 0.5f;
+            float mult = 0.25f / biggest_value;
+
+            switch (biggest_index) {
+                case 0: 
+                    return quat(
+                        biggest_value, 
+                        (m[0][1] + m[1][0]) * mult, 
+                        (m[2][0] + m[0][2]) * mult, 
+                        (m[1][2] - m[2][1]) * mult);
+                case 1: 
+                    return quat(
+                        (m[0][1] + m[1][0]) * mult, 
+                        biggest_value, 
+                        (m[1][2] + m[2][1]) * mult, 
+                        (m[2][0] - m[0][2]) * mult);
+                case 2: 
+                    return quat(
+                        (m[2][0] + m[0][2]) * mult, 
+                        (m[1][2] + m[2][1]) * mult, 
+                        biggest_value, 
+                        (m[0][1] - m[1][0]) * mult);
+                case 3: 
+                    return quat(
+                        (m[1][2] - m[2][1]) * mult, 
+                        (m[2][0] - m[0][2]) * mult, 
+                        (m[0][1] - m[1][0]) * mult, 
+                        biggest_value);
+                default:
+                    SIREN_ASSERT(false);
+                    return quat();
+            }
         }
 
         SIREN_INLINE static quat slerp(quat from, quat to, float percentage) {

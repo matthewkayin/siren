@@ -46,6 +46,94 @@ void trim_and_split_line(const std::string line, std::vector<std::string>* words
     }
 }
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+glm::mat4 siren_mat4_to_glm_mat4(const siren::mat4& m) {
+    glm::mat4 gm;
+    for (uint32_t c = 0; c < 4; c++) {
+        for (uint32_t r = 0; r < 4; r++) {
+            gm[c][r] = m[c][r];
+        }
+    }
+    return gm;
+}
+
+void mat4_compare(siren::mat4 a, siren::mat4 b, std::string message) {
+    SIREN_TRACE("%s", message.c_str());
+    bool is_equal = true;
+    for (uint32_t c = 0; c < 4; c++) {
+        for (uint32_t r = 0; r < 4; r++) {
+            if (fabs(a[c][r] - b[c][r]) > SIREN_FLOAT_EPSILON) {
+                SIREN_ERROR("Breaks on %u %u", c, r);
+                is_equal = false;
+                c = 4; // cause outer loop to break as well
+                break;
+            }
+        }
+    }
+
+    if (is_equal) {
+        SIREN_INFO("a: %m4 b: %m4", a, b);
+    } else {
+        SIREN_ERROR("a: %m4 b: %m4", a, b);
+    }
+}
+
+void mat4_compare(siren::mat4 sm, glm::mat4 gm, std::string message) {
+    SIREN_TRACE("%s", message.c_str());
+    bool is_equal = true;
+    for (uint32_t c = 0; c < 4; c++) {
+        for (uint32_t r = 0; r < 4; r++) {
+            if (fabs(sm[c][r] - gm[c][r]) > SIREN_FLOAT_EPSILON) {
+                SIREN_ERROR("Breaks on %u %u", c, r);
+                is_equal = false;
+                c = 4; // cause outer loop to break as well
+                break;
+            }
+        }
+    }
+
+    if (is_equal) {
+        SIREN_INFO("siren:\n%m4\n---\nglm:\n[%f %f %f %f]\n[%f %f %f %f]\n[%f %f %f %f]\n[%f %f %f %f]", sm,
+        gm[0][0], gm[1][0], gm[2][0], gm[3][0],
+        gm[0][1], gm[1][1], gm[2][1], gm[3][1],
+        gm[0][2], gm[1][2], gm[2][2], gm[3][2],
+        gm[0][3], gm[1][3], gm[2][3], gm[3][3]
+        );
+    } else {
+        SIREN_ERROR("siren:\n%m4\n---\nglm:\n[%f %f %f %f]\n[%f %f %f %f]\n[%f %f %f %f]\n[%f %f %f %f]", sm,
+        gm[0][0], gm[1][0], gm[2][0], gm[3][0],
+        gm[0][1], gm[1][1], gm[2][1], gm[3][1],
+        gm[0][2], gm[1][2], gm[2][2], gm[3][2],
+        gm[0][3], gm[1][3], gm[2][3], gm[3][3]
+        );
+    }
+}
+
+void quat_compare(siren::quat sq, glm::quat gq, std::string message) {
+    SIREN_TRACE("%s", message.c_str());
+    bool is_equal = true;
+    if (fabs(sq.x - gq.x) > SIREN_FLOAT_EPSILON) {
+        is_equal = false;
+    }
+    if (fabs(sq.y - gq.y) > SIREN_FLOAT_EPSILON) {
+        is_equal = false;
+    }
+    if (fabs(sq.z - gq.z) > SIREN_FLOAT_EPSILON) {
+        is_equal = false;
+    }
+    if (fabs(sq.w - gq.w) > SIREN_FLOAT_EPSILON) {
+        is_equal = false;
+    }
+
+    if (is_equal) {
+        SIREN_INFO("Quat compare: %q vs %f %f %f %f\n", sq, gq.x, gq.y, gq.z, gq.w);
+    } else {
+        SIREN_ERROR("Quat compare: %q vs %f %f %f %f\n", sq, gq.x, gq.y, gq.z, gq.w);
+    }
+}
+
 bool valve_model_load(siren::Model* model, siren::ValveModelAcquireParams params) {
     enum SmdParseMode {
         SMD_PARSE_MODE_NONE,
@@ -112,6 +200,8 @@ bool valve_model_load(siren::Model* model, siren::ValveModelAcquireParams params
             std::vector<std::string> words;
             trim_and_split_line(line, &words);
 
+            uint32_t passed = 0;
+            uint32_t total = 0;
             if (words[0] == "time") {
                 // In a model file, the skeleton block will define initial positions for each bone
                 for (int bone_id = 0; bone_id < model->bones.size(); bone_id++) {
@@ -122,18 +212,38 @@ bool valve_model_load(siren::Model* model, siren::ValveModelAcquireParams params
                     SIREN_ASSERT(bone_id == std::stoi(words[0]));
 
                     model->bones[bone_id].initial_transform = siren::basis_transform_create(siren::vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])), siren::vec3(std::stof(words[4]), std::stof(words[5]), std::stof(words[6])));
-                    model->bones[bone_id].inverse_bind_transform = siren::basis_transform_to_matrix(model->bones[bone_id].initial_transform).inversed();
-                    SIREN_TRACE("initial x inverse \n%m4", siren::basis_transform_to_matrix(model->bones[bone_id].initial_transform) * model->bones[bone_id].inverse_bind_transform);
-                    /* model->bones[bone_id].initial_transform = (siren::Transform) {
+                    // model->bones[bone_id].initial_transform = siren::basis_transform_create(siren::vec3(0.0f), siren::vec3(std::stof(words[4]), std::stof(words[5]), std::stof(words[6])));
+                    siren::mat4 initial_basis = siren::basis_transform_to_matrix(model->bones[bone_id].initial_transform);
+                    siren::mat4 initial_quat = siren::transform_to_matrix((siren::Transform) {
                         .position = siren::vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])),
-                        .rotation = 
-                            siren::quat::from_axis_angle(siren::VEC3_RIGHT, std::stof(words[4]), true) *
-                            siren::quat::from_axis_angle(siren::VEC3_UP, std::stof(words[5]), true) *
-                            siren::quat::from_axis_angle(siren::VEC3_FORWARD, std::stof(words[6]), true),
+                        .rotation = siren::quat::from_euler(std::stof(words[4]), std::stof(words[5]), std::stof(words[6])),
                         .scale = siren::vec3(1.0f)
-                    }; */
-                }
-            }
+                    });
+                    
+                    bool is_equal = true;
+                    for (uint32_t c = 0; c < 4; c++) {
+                        for (uint32_t r = 0; r < 4; r++) {
+                            if (fabs(initial_basis[c][r] - initial_quat[c][r]) > SIREN_FLOAT_EPSILON) {
+                                SIREN_TRACE("Fails on column %u row %u difference of %f", c, r, fabs(initial_basis[c][r] - initial_quat[c][r]));
+                                is_equal = false;
+                                break;
+                            }
+                        }
+                        if (!is_equal) {
+                            break;
+                        }
+                    }
+                    total++;
+                    if (is_equal) {
+                        passed++;
+                        SIREN_INFO("basis: \n%m4\n--\nquat: \n%m4\n--\n", initial_basis, initial_quat);
+                    } else {
+                        SIREN_ERROR("basis: \n%m4\n--\nquat: \n%m4\n--\n", initial_basis, initial_quat);
+                    }
+                    model->bones[bone_id].inverse_bind_transform = siren::basis_transform_to_matrix(model->bones[bone_id].initial_transform).inversed();
+                } // end for each bone
+                SIREN_TRACE("passed: %u / %u", passed, total);
+            } // end if words[0] == "time"
         } else if (smd_parse_mode == SMD_PARSE_MODE_TRIANGLES) {
             // Determine the name of the mesh
             auto it = mesh_data.find(line);

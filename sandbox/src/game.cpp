@@ -26,11 +26,7 @@ using siren::quat;
 bool game_init() {
     gamestate.debug_font = siren::font_acquire("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
-    gamestate.test = siren::valve_model_acquire((siren::ValveModelAcquireParams) {
-        .qc_path = "",
-        .smd_path = "model/portalgun_smd/v_portalgun_model.smd",
-        .diffuse_path = "texture/portal_gun/v_portalgun.png"
-    });
+    gamestate.test = siren::model_acquire("model/gun/portal-gun-export.dae");
     gamestate.transform = siren::model_transform_create(gamestate.test);
     gamestate.transform.root_transform.origin = vec3(1.0f, -4.0f, -6.0f);
     gamestate.transform.root_transform.basis = siren::mat4::scale(0.1f);

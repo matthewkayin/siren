@@ -22,8 +22,8 @@ $illumposition -4.643 -18.319 -5.629
 $mostlyopaque
 
 // $cdmaterials "models\Weapons\v_models\v_portalgun\"
-$cdmaterials "..\material"
-$cdmaterials ""
+// $cdmaterials "..\..\texture"
+// $cdmaterials ""
 
 $texturegroup "skinfamilies"
 {

@@ -6,6 +6,7 @@
 #include "math/vector3.h"
 #include "math/vector4.h"
 #include "math/matrix.h"
+#include "math/quaternion.h"
 
 #include <cstdarg>
 #include <cstring>
@@ -126,8 +127,15 @@ void siren::logger_output(siren::LogLevel level, const char* message, ...) {
                         for (int i = 0; i < 4; i++) {
                             out_ptr += sprintf(out_ptr, "[%f, %f, %f, %f]\n", (*m)[0][i], (*m)[1][i], (*m)[2][i], (*m)[3][i]);
                         }
+                        break;
                     }
                 }
+                break;
+            }
+            case 'q': {
+                quat* q = va_arg(arg_ptr, quat*);
+                out_ptr += sprintf(out_ptr, "<%f %f %f %f>", q->x, q->y, q->z, q->w);
+                break;
             }
         }
 
