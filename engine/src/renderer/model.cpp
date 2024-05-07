@@ -107,8 +107,8 @@ bool model_load(siren::Model* model, const char* path) {
         // collect mesh vertices
         std::vector<VertexData> vertices;
         for (uint32_t v = 0; v < meshes[i]->mNumVertices; v++) {
-            // Note: assimp models might have multiple texture coordinates. currently we are naively assuming that we can just use coordinate set 0,
-            // but later on we might need to write some code which decides which coordinates to use`
+            // Note: assimp models might have multiple texture coordinates. currently I'm naively assuming that we can just use coordinate set 0,
+            // but later on I might need to write some code which decides which coordinates to use
             vertices.push_back((VertexData) {
                 .position = siren::vec3(meshes[i]->mVertices[v].x, meshes[i]->mVertices[v].y, meshes[i]->mVertices[v].z),
                 .normal = siren::vec3(meshes[i]->mNormals[v].x, meshes[i]->mNormals[v].y, meshes[i]->mNormals[v].z),
@@ -116,19 +116,6 @@ bool model_load(siren::Model* model, const char* path) {
                 .bone_ids = { -1, -1, -1, -1 },
                 .bone_weights = { 0.0f, 0.0f, 0.0f, 0.0f }
             });
-        }
-
-        // determine the mesh offset, which is the center of its coordinates in each direction
-        siren::vec3 position_max = vertices[0].position;
-        siren::vec3 position_min = position_max;
-        for (uint32_t v = 1; v < vertices.size(); v++) {
-            position_max.x = siren::max(position_max.x, vertices[i].position.x);
-            position_max.y = siren::max(position_max.x, vertices[i].position.y);
-            position_max.z = siren::max(position_max.x, vertices[i].position.z);
-
-            position_min.x = siren::min(position_min.x, vertices[i].position.x);
-            position_min.y = siren::min(position_min.x, vertices[i].position.y);
-            position_min.z = siren::min(position_min.x, vertices[i].position.z);
         }
 
         // collect mesh indices
@@ -144,14 +131,16 @@ bool model_load(siren::Model* model, const char* path) {
         for (uint32_t assimp_bone_index = 0; assimp_bone_index < meshes[i]->mNumBones; assimp_bone_index++) {
             int bone_id = -1;
 
+            // Create the bones 
             std::string bone_name = std::string(meshes[i]->mBones[assimp_bone_index]->mName.C_Str());
             auto bone_id_it = model->bone_id_lookup.find(bone_name);
             if (bone_id_it == model->bone_id_lookup.end()) {
                 siren::Bone new_bone = (siren::Bone) {
                     .parent_id = -1,
-                    .keyframes = std::vector<std::vector<siren::Transform>>(),
-                    // .initial_transform = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
-                    .initial_transform = siren::basis_transform_identity()
+                    .keyframes = std::vector<siren::Keyframes>(),
+                    // .transform = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mNode->mTransformation),
+                    .transform = siren::mat4(1.0f),
+                    .inverse_bind_transform = assimp_mat4_to_siren_mat4(meshes[i]->mBones[assimp_bone_index]->mOffsetMatrix)
                 };
                 model->bones.push_back(new_bone);
                 bone_id = model->bones.size() - 1;
@@ -162,6 +151,7 @@ bool model_load(siren::Model* model, const char* path) {
 
             SIREN_ASSERT(bone_id != -1);
 
+            // Add the bone weights to the vertex data
             aiVertexWeight* weights = meshes[i]->mBones[assimp_bone_index]->mWeights;
             int num_weights = meshes[i]->mBones[assimp_bone_index]->mNumWeights;
             for (uint32_t weight_index = 0; weight_index < num_weights; weight_index++) {
@@ -177,13 +167,12 @@ bool model_load(siren::Model* model, const char* path) {
                         vertices[vertex_id].bone_weights[vertex_bone_index] = bone_weight;
                         break;
                     }
-                }
-            }
-        }
+                } // End for each vertex bone index
+            } // End for each bone weight
+        } // End for each bone
 
         // Traverse the node stack to get the bone hierarchy
         node_stack.push_back(scene->mRootNode);
-
         while (!node_stack.empty()) {
             aiNode* current_node = node_stack[0];
             node_stack.erase(node_stack.begin());
@@ -200,6 +189,7 @@ bool model_load(siren::Model* model, const char* path) {
             }
 
             int bone_id = bone_id_it->second;
+            model->bones[bone_id].transform = assimp_mat4_to_siren_mat4(current_node->mTransformation);
             // Now iterate through each of the node's children...
             for (uint32_t child_index = 0; child_index < current_node->mNumChildren; child_index++) {
                 // If the node child is not a bone, skip it
@@ -214,17 +204,7 @@ bool model_load(siren::Model* model, const char* path) {
             }
 
             SIREN_TRACE("Bone %i %s parent: %i", bone_id, current_node->mName.C_Str(), model->bones[bone_id].parent_id);
-        }
-
-        struct DbgNode {
-            int bone_id;
-            uint32_t depth;
-        };
-        std::vector<DbgNode> debug_stack;
-        debug_stack.push_back((DbgNode) {
-            .bone_id = 0,
-            .depth = 0
-        });
+        } // End for each node in node stack
 
         // setup the mesh in OpenGL
         siren::Mesh mesh;
@@ -294,11 +274,64 @@ bool model_load(siren::Model* model, const char* path) {
         model->mesh.push_back(mesh);
     } // end for each mesh 
 
-    // if (!model_animation_add(model, "open", "../res/model/door/anims/open.smd")) {
-        // return false;
-    // }
-
+    // Get model animations
     SIREN_INFO("Model anims %u", scene->mNumAnimations);
+    for (uint32_t a = 0; a < scene->mNumAnimations; a++) {
+        SIREN_INFO("anim name %s duration %f ticks per second %f", scene->mAnimations[a]->mName.C_Str(), scene->mAnimations[a]->mDuration, scene->mAnimations[a]->mTicksPerSecond);
+
+        // Create the animation in the list
+        std::string animation_name = std::string(scene->mAnimations[a]->mName.C_Str());
+        model->animations.push_back((siren::Animation) {
+            .duration = (float)scene->mAnimations[a]->mDuration,
+            .ticks_per_second = (float)scene->mAnimations[a]->mTicksPerSecond
+        });
+        for (int bone_id = 0; bone_id < model->bones.size(); bone_id++) {
+            model->bones[bone_id].keyframes.push_back(siren::Keyframes());
+        }
+        uint32_t animation_id = model->bones[0].keyframes.size() - 1;
+        model->animation_id_lookup[animation_name] = animation_id;
+
+        // For each channel, add the respective bone's keyframes
+        for (uint32_t n = 0; n < scene->mAnimations[a]->mNumChannels; n++) {
+            aiNodeAnim* node_anim = scene->mAnimations[a]->mChannels[n];
+
+            // Determine bone id of this channel
+            auto bone_id_it = model->bone_id_lookup.find(std::string(node_anim->mNodeName.C_Str()));
+            if (bone_id_it == model->bone_id_lookup.end()) {
+                SIREN_TRACE("Animation %s does not correspond to a bone. Skipping...", node_anim->mNodeName.C_Str());
+                continue;
+            }
+            int bone_id = bone_id_it->second;
+
+            for (uint32_t position_index = 0; position_index < node_anim->mNumPositionKeys; position_index++) {
+                aiVector3D position = node_anim->mPositionKeys[position_index].mValue;
+                float t = node_anim->mPositionKeys[position_index].mTime; 
+                model->bones[bone_id].keyframes[animation_id].positions.push_back((siren::KeyframeVec3) {
+                    .value = siren::vec3(position.x, position.y, position.z),
+                    .time = t
+                });
+            }
+
+            for (uint32_t rotation_index = 0; rotation_index < node_anim->mNumRotationKeys; rotation_index++) {
+                aiQuaternion rotation = node_anim->mRotationKeys[rotation_index].mValue;
+                float t = node_anim->mRotationKeys[rotation_index].mTime; 
+                model->bones[bone_id].keyframes[animation_id].rotations.push_back((siren::KeyframeQuat) {
+                    .value = siren::quat(rotation.x, rotation.y, rotation.z, rotation.w),
+                    .time = t
+                });
+            }
+
+            for (uint32_t scale_index = 0; scale_index < node_anim->mNumScalingKeys; scale_index++) {
+                aiVector3D scale = node_anim->mScalingKeys[scale_index].mValue;
+                float t = node_anim->mScalingKeys[scale_index].mTime; 
+                model->bones[bone_id].keyframes[animation_id].scales.push_back((siren::KeyframeVec3) {
+                    .value = siren::vec3(scale.x, scale.y, scale.z),
+                    .time = t
+                });
+            }
+        } // End for each animation channel
+    } // End for each animation
+
     glBindVertexArray(0);
 
     SIREN_TRACE("Model loaded successfully.");
@@ -306,144 +339,19 @@ bool model_load(siren::Model* model, const char* path) {
     return true;
 }
 
-bool siren::model_animation_add(siren::Model* model, const char* name, const char* path) {
-    enum ParseMode {
-        PARSE_MODE_NONE,
-        PARSE_MODE_NODES,
-        PARSE_MODE_SKELETON
-    };
-    ParseMode parse_mode = PARSE_MODE_NONE;
-    uint32_t animation_frame = 0;
-
-    std::ifstream animation_file;
-    std::string line;
-
-    std::unordered_map<int, int> node_to_bone_map;
-
-    animation_file.open(path);
-    if (!animation_file.is_open()) {
-        SIREN_ERROR("Unable to open animation file at path %s.", path);
-        return false;
-    }
-
-    // Create a new set of keyframes for this animation
-    SIREN_TRACE("MODEL BONE SIZE %u", model->bones.size());
-    int animation_id = model->bones[0].keyframes.size();
-    for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-        model->bones[bone_index].keyframes.push_back(std::vector<Transform>());
-    }
-    model->animation_id_lookup[std::string(name)] = animation_id;
-
-    while (std::getline(animation_file, line)) {
-        if (line[0] == '/' && line[1] == '/') {
-            continue;
-        } else if (line == "end") {
-            parse_mode = PARSE_MODE_NONE;
-        } else if (line == "nodes") {
-            parse_mode = PARSE_MODE_NODES;
-        } else if (line == "skeleton") {
-            parse_mode = PARSE_MODE_SKELETON;
-        } else {
-            if (parse_mode == PARSE_MODE_NONE) {
-                continue;
-            }
-
-            // Remove leading whitespace
-            size_t non_space_index = line.find_first_not_of(' ');
-            line = line.substr(non_space_index);
-
-            // Break line into words
-            std::vector<std::string> words;
-            while (line.size() != 0) {
-                size_t space_index = line.find_first_of(' ');
-                if (space_index == std::string::npos) {
-                    words.push_back(line);
-                    line = "";
-                } else {
-                    words.push_back(line.substr(0, space_index));
-                    line = line.substr(space_index + 1);
-                }
-            }
-
-            // Parse the words
-            if (parse_mode == PARSE_MODE_NODES) {
-                // node entry takes the form:
-                // <node-id> "<node-name>" <node-root>
-                // here we ignore any nodes that aren't bones
-                // and we create a mapping from the node_id in the anim file to the bone_id in the model data
-                int node_id = std::stoi(words[0]);
-                std::string animation_bone_name = words[1].substr(1, words[1].size() - 2); // This substr removes the quotes from the string
-
-                auto model_bone_id_it = model->bone_id_lookup.find(animation_bone_name);
-                if (model_bone_id_it == model->bone_id_lookup.end()) {
-                    continue;
-                }
-                int model_bone_id = model_bone_id_it->second;
-                
-                node_to_bone_map[node_id] = model_bone_id;
-            } else if (parse_mode == PARSE_MODE_SKELETON) {
-                if (words[0] == "time") {
-                    // time entry takes the form:
-                    // time <frame-number>
-                    animation_frame = std::stoi(words[1]);
-
-                    // for each frame we add a new entry to the keyframes of all the bones
-                    // the first frame in an animation will always have an entry for each bone's initial transform
-                    // subsequency frames are allowed to omit a transform for a bone, which means the bone stays in the same place
-                    // to account for this, keyframes will be initialized using the previous frame 
-                    for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-                        model->bones[bone_index].keyframes[animation_id].push_back(animation_frame == 0 ? (Transform) {
-                            .position = vec3(),
-                            .rotation = quat(),
-                            .scale = vec3(1.0f)
-                        } : model->bones[bone_index].keyframes[animation_id][animation_frame - 1]);
-                    }
-                } else {
-                    // Get the bone_id
-                    int animation_bone_id = std::stoi(words[0]);
-                    auto bone_id_it = node_to_bone_map.find(animation_bone_id);
-                    if (bone_id_it == node_to_bone_map.end()) {
-                        continue;
-                    }
-                    int bone_id = bone_id_it->second;
-
-                    // Add the keyframe
-                    model->bones[bone_id].keyframes[animation_id][animation_frame] = (Transform) {
-                        .position = vec3(std::stof(words[1]), std::stof(words[2]), std::stof(words[3])),
-                        .rotation = 
-                        quat::from_axis_angle(VEC3_UP, std::stof(words[4]), true) *
-                        quat::from_axis_angle(VEC3_RIGHT, std::stof(words[5]), true) *
-                        quat::from_axis_angle(VEC3_FORWARD, std::stof(words[6]), true),
-                        .scale = vec3(1.0f)
-                    };
-                }
-            }
-        }
-    }
-
-    animation_file.close();
-
-    return true;
-}
-
-uint32_t siren::model_animation_get_frame_count(Model* model, int animation_id) {
-    return model->bones[0].keyframes[animation_id].size();
-}
-
 siren::ModelTransform siren::model_transform_create(siren::Model* model) {
     ModelTransform result;
 
     result.model = model;
-    result.root_transform = basis_transform_identity();
+    result.root_transform = transform_identity();
 
-    std::vector<BasisTransform> bone_transform;
+    std::vector<mat4> bone_transform;
     for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-        bone_transform.push_back(basis_transform_identity());
+        bone_transform.push_back(mat4(1.0f));
     }
     result.bone_transform = bone_transform;
 
     result.animation = ModelTransform::ANIMATION_NONE;
-    result.animation_frame = 0;
     result.animation_timer = 0.0f;
 
     return result;
@@ -457,34 +365,59 @@ void siren::model_transform_animation_set(ModelTransform* model_transform, const
     }
 
     model_transform->animation = animation_id_it->second;
-    model_transform->animation_frame = 0;
     model_transform->animation_timer = 0.0f;
 }
 
 void siren::model_transform_animation_update(ModelTransform* model_transform, float delta) {
-    static const float FRAME_DURATION = 0.1f;
-    uint32_t animation_frame_count = model_animation_get_frame_count(model_transform->model, model_transform->animation);
+    Model* model = model_transform->model;
+    int animation_id = model_transform->animation;
 
-    model_transform->animation_timer += delta;
-    if (model_transform->animation_timer > FRAME_DURATION) {
-        model_transform->animation_timer -= FRAME_DURATION;
-
-        model_transform->animation_frame++;
-        if (model_transform->animation_frame == animation_frame_count) {
-            model_transform->animation_frame = 0;
-        }
+    model_transform->animation_timer += model->animations[animation_id].ticks_per_second * delta;
+    // Loops animation
+    // TODO? Use assimp animation behavior?
+    if (model_transform->animation_timer > model->animations[animation_id].duration) {
+        model_transform->animation_timer -= model->animations[animation_id].duration;
     }
 
     for (uint32_t bone_index = 0; bone_index < model_transform->bone_transform.size(); bone_index++) {
-        if (model_transform->animation_frame == animation_frame_count) {
-            // model_transform->bone_transform[bone_index] = model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame];
+        Keyframes& bone_keyframes = model->bones[bone_index].keyframes[animation_id];
+
+        if (bone_keyframes.positions.size() == 0) {
+            model_transform->bone_transform[bone_index] = model->bones[bone_index].transform;
             continue;
         }
-        float percent = model_transform->animation_timer / FRAME_DURATION;
-        /*model_transform->bone_transform[bone_index] = transform_lerp(
-            model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame],
-            model_transform->model->bones[bone_index].keyframes[model_transform->animation][model_transform->animation_frame + 1],
-            percent
-        );*/
+
+        vec3 bone_position;
+        for (uint32_t position_index = 0; position_index < bone_keyframes.positions.size() - 1; position_index++) {
+            if (model_transform->animation_timer < bone_keyframes.positions[position_index].time) {
+                float percent = (model_transform->animation_timer - bone_keyframes.positions[position_index].time) / (bone_keyframes.positions[position_index + 1].time - bone_keyframes.positions[position_index].time);
+                bone_position = vec3::lerp(bone_keyframes.positions[position_index].value, bone_keyframes.positions[position_index + 1].value, percent);
+                break;
+            }
+        }
+
+        quat bone_rotation;
+        for (uint32_t rotation_index = 0; rotation_index < bone_keyframes.rotations.size() - 1; rotation_index++) {
+            if (model_transform->animation_timer < bone_keyframes.rotations[rotation_index].time) {
+                float percent = (model_transform->animation_timer - bone_keyframes.rotations[rotation_index].time) / (bone_keyframes.rotations[rotation_index + 1].time - bone_keyframes.rotations[rotation_index].time);
+                bone_rotation = quat::slerp(bone_keyframes.rotations[rotation_index].value, bone_keyframes.rotations[rotation_index + 1].value, percent);
+                break;
+            }
+        }
+
+        vec3 bone_scale;
+        for (uint32_t scale_index = 0; scale_index < bone_keyframes.scales.size() - 1; scale_index++) {
+            if (model_transform->animation_timer < bone_keyframes.scales[scale_index].time) {
+                float percent = (model_transform->animation_timer - bone_keyframes.scales[scale_index].time) / (bone_keyframes.scales[scale_index + 1].time - bone_keyframes.scales[scale_index].time);
+                bone_scale = vec3::lerp(bone_keyframes.scales[scale_index].value, bone_keyframes.scales[scale_index + 1].value, percent);
+                break;
+            }
+        }
+
+        model_transform->bone_transform[bone_index] = transform_to_matrix((Transform) {
+            .position = bone_position,
+            .rotation = bone_rotation,
+            .scale = bone_scale
+        });
     }
 }

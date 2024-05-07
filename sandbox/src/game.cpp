@@ -28,8 +28,9 @@ bool game_init() {
     gamestate.camera = siren::Camera();
     gamestate.test = siren::model_acquire("model/gun/portal-gun-export.dae");
     gamestate.transform = siren::model_transform_create(gamestate.test);
-    gamestate.transform.root_transform.origin = vec3(1.0f, -4.0f, -6.0f);
-    gamestate.transform.root_transform.basis = siren::mat4::scale(0.1f);
+    gamestate.transform.root_transform.position = vec3(1.0f, -4.0f, -6.0f);
+    gamestate.transform.root_transform.scale = siren::vec3(0.1f);
+    siren::model_transform_animation_set(&gamestate.transform, gamestate.test->animation_id_lookup.begin()->first.c_str());
 
     return true;
 }
@@ -72,6 +73,8 @@ bool game_update(float delta) {
         gamestate.camera.apply_pitch((float)mouse_rel.y * -0.1f);
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
+
+    siren::model_transform_animation_update(&gamestate.transform, delta);
 
     return true;
 }

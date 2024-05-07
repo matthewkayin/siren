@@ -19,23 +19,24 @@ const int MAX_BONE_INFLUENCE = 4;
 uniform mat4 bone_matrix[MAX_BONES];
 
 void main() {
-    vec4 local_position = vec4(0.0);
+    vec4 total_position = vec4(0.0);
     for (int i = 0; i < MAX_BONE_INFLUENCE; i++) {
         if (bone_ids[i] == -1) {
             continue;
         }
 
         if (bone_ids[i] > MAX_BONES - 1) {
-            local_position = vec4(vertex_position, 1.0);
+            total_position = vec4(vertex_position, 1.0);
             break;
         }
 
-        local_position += (bone_matrix[bone_ids[i]] * vec4(vertex_position, 1.0)) * bone_weights[i];
+        vec4 local_position = bone_matrix[bone_ids[i]] * vec4(vertex_position, 1.0);
+        total_position += local_position * bone_weights[i];
     }
 
-    gl_Position = projection * view * model * local_position;
+    gl_Position = projection * view * model * total_position;
 
-    frag_position = vec3(model * local_position);
+    frag_position = vec3(model * total_position);
     // TODO pre-calc this before the shader
     frag_normal = normalize(mat3(transpose(inverse(model))) * normal);
     frag_texture_coordinate = texture_coordinate;

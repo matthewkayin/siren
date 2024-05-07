@@ -44,7 +44,7 @@ siren::Texture siren::texture_acquire(const char* path) {
 
 siren::Texture texture_load(const char* path) {
     // TODO, call this only once?
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(false);
     int width;
     int height;
     int number_of_components;

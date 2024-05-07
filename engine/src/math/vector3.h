@@ -132,6 +132,10 @@ namespace siren {
                         (a.z * b.x) - (a.x * b.z),
                         (a.x * b.y) - (a.y * b.x));
         }
+
+        SIREN_INLINE static vec3 lerp(const vec3& a, const vec3& b, float time) {
+            return a + ((b - a) * time);
+        }
     }; // end union vec3
 
     // vec3 constants

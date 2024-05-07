@@ -33,16 +33,38 @@ namespace siren {
         Texture texture_emissive;
     };
 
+    struct KeyframeVec3 {
+        vec3 value;
+        float time;
+    };
+
+    struct KeyframeQuat {
+        quat value;
+        float time;
+    };
+
+    struct Keyframes {
+        std::vector<KeyframeVec3> positions;
+        std::vector<KeyframeQuat> rotations;
+        std::vector<KeyframeVec3> scales;
+    };
+
     struct Bone {
         int parent_id;
-        std::vector<std::vector<Transform>> keyframes;
-        BasisTransform initial_transform;
+        std::vector<Keyframes> keyframes;
+        mat4 transform;
         mat4 inverse_bind_transform;
+    };
+
+    struct Animation {
+        float duration;
+        float ticks_per_second;
     };
 
     struct Model {
         std::vector<Mesh> mesh;
         std::vector<Bone> bones;
+        std::vector<Animation> animations;
         std::unordered_map<std::string, int> bone_id_lookup;
         std::unordered_map<std::string, int> animation_id_lookup;
     };
@@ -52,26 +74,16 @@ namespace siren {
 
         // TODO, change this to using uint32_t IDs as a model reference so that if a Model gets freed, we can check within the transform code that we are not referencing a dangling model
         Model* model;
-        BasisTransform root_transform;
-        std::vector<BasisTransform> bone_transform;
+        Transform root_transform;
+        std::vector<mat4> bone_transform;
 
         int animation;
-        uint32_t animation_frame;
         float animation_timer;
     };
 
     SIREN_API Model* model_acquire(const char* path);
-    SIREN_API bool model_animation_add(Model* model, const char* name, const char* path);
-    SIREN_API uint32_t model_animation_get_frame_count(Model* model, int animation_id);
 
     SIREN_API ModelTransform model_transform_create(Model* model);
     SIREN_API void model_transform_animation_set(ModelTransform* model_transform, const char* name);
     SIREN_API void model_transform_animation_update(ModelTransform* model_transform, float delta);
-
-    struct ValveModelAcquireParams {
-        const char* qc_path;
-        const char* smd_path;
-        const char* diffuse_path;
-    };
-    SIREN_API Model* valve_model_acquire(ValveModelAcquireParams params);
 }
