@@ -372,30 +372,6 @@ bool model_load(siren::Model* model, const char* path) {
 
     SIREN_TRACE("Opened glb file %s", path);
 
-    // Create vbos
-    /*
-    std::unordered_map<uint32_t, uint32_t> vbos;
-    for (uint32_t buffer_view_index = 0; buffer_view_index < gltf_model.bufferViews.size(); buffer_view_index++) {
-        const tinygltf::BufferView& buffer_view = gltf_model.bufferViews[buffer_view_index];
-
-        if (buffer_view.target == 0) {
-            // SIREN_WARN("Buffer view target is 0. Assuming array buffer.");
-            // target = GL_ARRAY_BUFFER;
-            continue;
-        }
-        SIREN_TRACE("Handling buffer view %u %s", buffer_view_index, buffer_view.name.c_str());
-
-        uint32_t vbo;
-        glGenBuffers(1, &vbo);
-        vbos[buffer_view_index] = vbo;
-        glBindBuffer(buffer_view.target, vbo);
-
-        const tinygltf::Buffer& buffer = gltf_model.buffers[buffer_view.buffer];
-        SIREN_TRACE("Buffering data... Buffer: %i Target: %i Offset: %u Byte Length: %u", buffer_view.buffer, buffer_view.target, buffer_view.byteOffset, buffer_view.byteLength);
-        glBufferData(buffer_view.target, buffer_view.byteLength, &buffer.data.at(0) + buffer_view.byteOffset, GL_STATIC_DRAW);
-    }
-    */
-
     // Create meshes
     const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene];
     std::vector<int> node_stack;
@@ -441,56 +417,41 @@ bool model_load(siren::Model* model, const char* path) {
                 const tinygltf::Accessor& accessor = gltf_model.accessors[attribute.second];
                 const tinygltf::BufferView& buffer_view = gltf_model.bufferViews[accessor.bufferView];
                 const tinygltf::Buffer& buffer = gltf_model.buffers[buffer_view.buffer];
-                // int byte_stride = accessor.ByteStride(buffer_view);
-                // glBindBuffer(GL_ARRAY_BUFFER, vbos[accessor.bufferView]);
 
-                // int size = accessor.type == TINYGLTF_TYPE_SCALAR ? 1 : accessor.type;
-
-                // int vaa = -1;
                 if (attribute.first.compare("POSITION") == 0) {
-                    // vaa = 0;
                     for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(siren::vec3)); i += sizeof(siren::vec3)) {
                         siren::vec3 v;
                         std::memcpy(&v, &buffer.data.at(i), sizeof(siren::vec3));
                         positions.push_back(v);
                     }
                 } else if (attribute.first.compare("NORMAL") == 0) {
-                    // vaa = 1;
                     for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(siren::vec3)); i += sizeof(siren::vec3)) {
                         siren::vec3 v;
                         std::memcpy(&v, &buffer.data.at(i), sizeof(siren::vec3));
                         normals.push_back(v);
                     }
                 } else if (attribute.first.compare("TEXCOORD_0") == 0) {
-                    // vaa = 2;
                     for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(siren::vec2)); i += sizeof(siren::vec2)) {
                         siren::vec2 v;
                         std::memcpy(&v, &buffer.data.at(i), sizeof(siren::vec2));
                         tex_coords.push_back(v);
                     }
                 } else if (attribute.first.compare("JOINTS_0") == 0) {
-                    // vaa = 3;
                     for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(int[4])); i += sizeof(int[4])) {
                         std::vector<int> b(4, 0);
                         std::memcpy(&b[0], &buffer.data.at(i), 4 * sizeof(int));
                         bone_ids.push_back(b);
                     }
                 } else if (attribute.first.compare("WEIGHTS_0") == 0) {
-                    // vaa = 4;
                     for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(float[4])); i += sizeof(float[4])) {
                         std::vector<float> b(4, 0.0f);
                         std::memcpy(&b[0], &buffer.data.at(i), 4 * sizeof(float));
                         bone_weights.push_back(b);
                     }
                 } else {
-                // if (vaa == -1) {
                     SIREN_WARN("Unhandled vertex array attribute %s. Skipping...", attribute.first.c_str());
                     continue;
                 }
-                // SIREN_TRACE("Attribute name %s vaa %i size %u buffer %i", attribute.first.c_str(), vaa, size, accessor.bufferView);
-
-                // glEnableVertexAttribArray(vaa);
-                // glVertexAttribPointer(vaa, size, accessor.componentType, accessor.normalized ? GL_TRUE : GL_FALSE, byte_stride, (void*)accessor.byteOffset);
             } // End for each primitive attribute
             struct VertexData {
                 siren::vec3 position;
@@ -508,6 +469,8 @@ bool model_load(siren::Model* model, const char* path) {
                     .bone_ids = { -1, -1, -1, -1 },
                     .bone_weights = { 0.0f, 0.0f, 0.0f, 0.0f }
                 });
+                // Making this check because bone_ids are optional on a model
+                // Note that bone_ids will still be in the vertex data, they will just have -1 values so that they won't be used
                 if (bone_ids.size() != 0) {
                     for (uint32_t b = 0; b < 4; b++) {
                         vertex_data[vertex_data.size() - 1].bone_ids[b] = bone_ids[i][b];
@@ -574,21 +537,57 @@ bool model_load(siren::Model* model, const char* path) {
             model->meshes.push_back(mesh);
             SIREN_TRACE("Mesh added successfully.");
         } // End for each primitive
-    } // End while not node stack empty
 
-    // Cleanup vbos but do not delete index buffers yet
-    // TODO destructor to cleanup index buffers?
-    /*
-    SIREN_TRACE("Cleaning up vbos...");
-    for (auto it = vbos.begin(); it != vbos.end(); it++) {
-        const tinygltf::BufferView& buffer_view = gltf_model.bufferViews[it->first];
-        if (buffer_view.target == GL_ELEMENT_ARRAY_BUFFER) {
-            continue;
+        // ~ Read the bones ~
+        const tinygltf::Skin& skin = gltf_model.skins[node.skin];
+        const tinygltf::Accessor& inverse_bind_accessor = gltf_model.accessors[skin.inverseBindMatrices];
+        const tinygltf::BufferView& inverse_bind_buffer_view = gltf_model.bufferViews[inverse_bind_accessor.bufferView];
+        const tinygltf::Buffer& inverse_bind_buffer = gltf_model.buffers[inverse_bind_buffer_view.buffer];
+        std::unordered_map<int, int> node_id_to_bone_id;
+        for (uint32_t bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
+            const tinygltf::Node& bone_node = gltf_model.nodes[skin.joints[bone_index]];
+            node_id_to_bone_id[skin.joints[bone_index]] = bone_index;
+            SIREN_TRACE("bone id %u node id %i name %s", bone_index, skin.joints[bone_index], bone_node.name.c_str());
+
+            siren::Transform transform = (siren::Transform) {
+                .position = siren::vec3(0.0f),
+                .rotation = siren::quat(),
+                .scale = siren::vec3(1.0f)
+            };
+            if (bone_node.translation.size() != 0) {
+                transform.position = siren::vec3(bone_node.translation.at(0), bone_node.translation.at(1), bone_node.translation.at(2));
+            }
+            if (bone_node.rotation.size() != 0) {
+                transform.rotation = siren::quat(bone_node.rotation.at(0), bone_node.rotation.at(1), bone_node.rotation.at(2), bone_node.rotation.at(3));
+            }
+            if (bone_node.scale.size() != 0) {
+                transform.scale = siren::vec3(bone_node.scale.at(0), bone_node.scale.at(1), bone_node.scale.at(2));
+            }
+
+            siren::mat4 inverse_bind_transform;
+            memcpy(&inverse_bind_transform[0], &inverse_bind_buffer.data.at(0) + inverse_bind_buffer_view.byteOffset + (bone_index * sizeof(siren::mat4)), sizeof(siren::mat4));
+
+            model->bones.push_back((siren::Bone) {
+                .parent_id = -1,
+                .keyframes = std::vector<siren::Keyframes>(),
+                .transform = siren::transform_to_matrix(transform),
+                // .transform = siren::mat4(1.0f),
+                .inverse_bind_transform = inverse_bind_transform
+            });
+            SIREN_TRACE("transform:\n%m4\ninverse bind:\n%m4", model->bones[model->bones.size() - 1].transform, inverse_bind_transform);
         }
-
-        // glDeleteBuffers(1, &vbos[it->first]);
-    }
-    */
+        // Determine bone parents
+        for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
+            const tinygltf::Node& bone_node = gltf_model.nodes[skin.joints[bone_index]];
+            for (uint32_t child_index = 0; child_index < bone_node.children.size(); child_index++) {
+                int child_bone_id = node_id_to_bone_id[bone_node.children[child_index]];
+                model->bones[child_bone_id].parent_id = bone_index;
+            }
+        }
+        for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
+            SIREN_TRACE("bone %i name %s parent %i", bone_index, gltf_model.nodes[skin.joints[bone_index]].name.c_str(), model->bones[bone_index].parent_id);
+        }
+    } // End while not node stack empty
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -606,7 +605,8 @@ siren::ModelTransform siren::model_transform_create(siren::Model* model) {
 
     std::vector<mat4> bone_transform;
     for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-        bone_transform.push_back(mat4(1.0f));
+        // bone_transform.push_back(mat4(1.0f));
+        bone_transform.push_back(model->bones[bone_index].transform);
     }
     result.bone_transform = bone_transform;
 
