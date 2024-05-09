@@ -33,6 +33,7 @@ void main() {
         vec4 local_position = bone_matrix[bone_ids[i]] * vec4(vertex_position, 1.0);
         total_position += local_position * bone_weights[i];
     }
+    total_position = vec4(vertex_position, 1.0);
 
     gl_Position = projection * view * model * total_position;
 

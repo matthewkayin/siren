@@ -19,13 +19,7 @@ out vec4 frag_color;
 uniform vec3 view_position;
 uniform PointLight point_light;
 
-uniform vec3 material_ambient;
-uniform vec3 material_diffuse;
-uniform vec3 material_specular;
-uniform float material_shininess;
-uniform float material_shininess_strength;
 uniform sampler2D material_texture;
-uniform sampler2D material_emissive;
 
 void main() {  
     vec3 view_direction = normalize(view_position - frag_position);
@@ -34,12 +28,12 @@ void main() {
 
 vec3 calculate_point_light(PointLight light, vec3 normal, vec3 frag_position, vec3 view_direction) {
     // Ambient
-    vec3 ambient = material_ambient;
+    vec3 ambient = vec3(1.0);
 
     // Diffuse
     vec3 light_direction = normalize(light.position - frag_position);
     float diffuse_strength = max(dot(normal, light_direction), 0.0); 
-    vec3 diffuse_color = material_diffuse;
+    vec3 diffuse_color = vec3(1.0);
     vec3 diffuse = diffuse_strength * diffuse_color;
 
     // Specular
@@ -47,7 +41,7 @@ vec3 calculate_point_light(PointLight light, vec3 normal, vec3 frag_position, ve
     vec3 specular = vec3(0.0);
     if (diffuse_strength > 0.0) {
         // specular = pow(max(dot(view_direction, reflect_direction), 0.0), 32.0) * material.ks;
-        specular = material_specular * pow(max(dot(view_direction, reflect_direction), 0.0), material_shininess) * material_shininess_strength;
+        specular = vec3(1.0) * pow(max(dot(view_direction, reflect_direction), 0.0), 32.0);
     }
 
     // Attenuation
@@ -56,6 +50,6 @@ vec3 calculate_point_light(PointLight light, vec3 normal, vec3 frag_position, ve
 
     // Final color
     vec3 sampled = texture(material_texture, frag_texture_coordinate).rgb;
-    vec3 emissive = texture(material_emissive, frag_texture_coordinate).rgb;
-    return (ambient + diffuse + specular + emissive) * sampled * attenuation;
+    // vec3 emissive = texture(material_emissive, frag_texture_coordinate).rgb;
+    return (ambient + diffuse + specular) * sampled * attenuation;
 }

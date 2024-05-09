@@ -58,6 +58,7 @@ siren::Model* siren::model_acquire(const char* path) {
     return &models[key];
 }
 
+/*
 bool model_load(siren::Model* model, const char* path) {
     std::string short_path = std::string(path);
     std::string full_path = std::string(siren::resource_get_base_path()) + short_path;
@@ -336,6 +337,264 @@ bool model_load(siren::Model* model, const char* path) {
 
     SIREN_TRACE("Model loaded successfully.");
 
+    return true;
+}
+*/
+
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define TINYGLTF_NOEXCEPTION
+#define JSON_NOEXCEPTION
+#include <tiny_gltf.h>
+
+bool model_load(siren::Model* model, const char* path) {
+    std::string full_path = std::string(siren::resource_get_base_path()) + std::string(path);
+
+    SIREN_INFO("Loading glb %s...", full_path.c_str());
+
+    // Read the file
+    tinygltf::TinyGLTF loader;
+    std::string error;
+    std::string warning;
+    tinygltf::Model gltf_model;
+    bool success = loader.LoadBinaryFromFile(&gltf_model, &error, &warning, full_path);
+    if (!warning.empty()) {
+        SIREN_WARN("%s", warning.c_str());
+    }
+    if (!error.empty()) {
+        SIREN_ERROR("%s", error.c_str());
+    }
+
+    if (!success) {
+        SIREN_ERROR("Failed to load glb file %s", path);
+        return false;
+    }
+
+    SIREN_TRACE("Opened glb file %s", path);
+
+    // Create vbos
+    /*
+    std::unordered_map<uint32_t, uint32_t> vbos;
+    for (uint32_t buffer_view_index = 0; buffer_view_index < gltf_model.bufferViews.size(); buffer_view_index++) {
+        const tinygltf::BufferView& buffer_view = gltf_model.bufferViews[buffer_view_index];
+
+        if (buffer_view.target == 0) {
+            // SIREN_WARN("Buffer view target is 0. Assuming array buffer.");
+            // target = GL_ARRAY_BUFFER;
+            continue;
+        }
+        SIREN_TRACE("Handling buffer view %u %s", buffer_view_index, buffer_view.name.c_str());
+
+        uint32_t vbo;
+        glGenBuffers(1, &vbo);
+        vbos[buffer_view_index] = vbo;
+        glBindBuffer(buffer_view.target, vbo);
+
+        const tinygltf::Buffer& buffer = gltf_model.buffers[buffer_view.buffer];
+        SIREN_TRACE("Buffering data... Buffer: %i Target: %i Offset: %u Byte Length: %u", buffer_view.buffer, buffer_view.target, buffer_view.byteOffset, buffer_view.byteLength);
+        glBufferData(buffer_view.target, buffer_view.byteLength, &buffer.data.at(0) + buffer_view.byteOffset, GL_STATIC_DRAW);
+    }
+    */
+
+    // Create meshes
+    const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene];
+    std::vector<int> node_stack;
+    for (uint32_t node_index = 0; node_index < scene.nodes.size(); node_index++) {
+        node_stack.push_back(scene.nodes[node_index]);
+    }
+
+    while (!node_stack.empty()) {
+        // Get the node on top of the stack
+        int node_index = node_stack[node_stack.size() - 1];
+        node_stack.pop_back();
+        SIREN_ASSERT(node_index >= 0 && node_index < gltf_model.nodes.size());
+        tinygltf::Node& node = gltf_model.nodes[node_index];
+        SIREN_TRACE("Handling node with index %i and name %s", node_index, node.name.c_str());
+
+        // Add children to the stack
+        for (uint32_t child_index = 0; child_index < node.children.size(); child_index++) {
+            node_stack.push_back(node.children[child_index]);
+        }
+        
+        // Skip the node if it doesn't have a mesh
+        if (node.mesh < 0 || node.mesh > gltf_model.meshes.size() - 1) {
+            continue;
+        }
+
+        SIREN_TRACE("Node has mesh. Looping through primitives.");
+        // Create a mesh for this node
+        const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[node.mesh];
+        for (uint32_t primitive_index = 0; primitive_index < gltf_mesh.primitives.size(); primitive_index++) {
+            // Setup the siren mesh
+            SIREN_TRACE("Setting up the mesh for primitive %u...", primitive_index);
+            siren::Mesh mesh;
+            glGenVertexArrays(1, &mesh.vao);
+            glBindVertexArray(mesh.vao);
+
+            const tinygltf::Primitive& primitive = gltf_mesh.primitives[primitive_index];
+            std::vector<siren::vec3> positions;
+            std::vector<siren::vec3> normals;
+            std::vector<siren::vec2> tex_coords;
+            std::vector<std::vector<int>> bone_ids;
+            std::vector<std::vector<float>> bone_weights;
+            for (auto& attribute : primitive.attributes) {
+                const tinygltf::Accessor& accessor = gltf_model.accessors[attribute.second];
+                const tinygltf::BufferView& buffer_view = gltf_model.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = gltf_model.buffers[buffer_view.buffer];
+                // int byte_stride = accessor.ByteStride(buffer_view);
+                // glBindBuffer(GL_ARRAY_BUFFER, vbos[accessor.bufferView]);
+
+                // int size = accessor.type == TINYGLTF_TYPE_SCALAR ? 1 : accessor.type;
+
+                // int vaa = -1;
+                if (attribute.first.compare("POSITION") == 0) {
+                    // vaa = 0;
+                    for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(siren::vec3)); i += sizeof(siren::vec3)) {
+                        siren::vec3 v;
+                        std::memcpy(&v, &buffer.data.at(i), sizeof(siren::vec3));
+                        positions.push_back(v);
+                    }
+                } else if (attribute.first.compare("NORMAL") == 0) {
+                    // vaa = 1;
+                    for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(siren::vec3)); i += sizeof(siren::vec3)) {
+                        siren::vec3 v;
+                        std::memcpy(&v, &buffer.data.at(i), sizeof(siren::vec3));
+                        normals.push_back(v);
+                    }
+                } else if (attribute.first.compare("TEXCOORD_0") == 0) {
+                    // vaa = 2;
+                    for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(siren::vec2)); i += sizeof(siren::vec2)) {
+                        siren::vec2 v;
+                        std::memcpy(&v, &buffer.data.at(i), sizeof(siren::vec2));
+                        tex_coords.push_back(v);
+                    }
+                } else if (attribute.first.compare("JOINTS_0") == 0) {
+                    // vaa = 3;
+                    for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(int[4])); i += sizeof(int[4])) {
+                        std::vector<int> b(4, 0);
+                        std::memcpy(&b[0], &buffer.data.at(i), 4 * sizeof(int));
+                        bone_ids.push_back(b);
+                    }
+                } else if (attribute.first.compare("WEIGHTS_0") == 0) {
+                    // vaa = 4;
+                    for (uint32_t i = buffer_view.byteOffset + accessor.byteOffset; i < buffer_view.byteOffset + accessor.byteOffset + (accessor.count * sizeof(float[4])); i += sizeof(float[4])) {
+                        std::vector<float> b(4, 0.0f);
+                        std::memcpy(&b[0], &buffer.data.at(i), 4 * sizeof(float));
+                        bone_weights.push_back(b);
+                    }
+                } else {
+                // if (vaa == -1) {
+                    SIREN_WARN("Unhandled vertex array attribute %s. Skipping...", attribute.first.c_str());
+                    continue;
+                }
+                // SIREN_TRACE("Attribute name %s vaa %i size %u buffer %i", attribute.first.c_str(), vaa, size, accessor.bufferView);
+
+                // glEnableVertexAttribArray(vaa);
+                // glVertexAttribPointer(vaa, size, accessor.componentType, accessor.normalized ? GL_TRUE : GL_FALSE, byte_stride, (void*)accessor.byteOffset);
+            } // End for each primitive attribute
+            struct VertexData {
+                siren::vec3 position;
+                siren::vec3 normal;
+                siren::vec2 tex_coord;
+                int bone_ids[4];
+                float bone_weights[4];
+            };
+            std::vector<VertexData> vertex_data;
+            for (uint32_t i = 0; i < positions.size(); i++) {
+                vertex_data.push_back((VertexData) {
+                    .position = positions[i],
+                    .normal = normals[i],
+                    .tex_coord = tex_coords[i],
+                    .bone_ids = { -1, -1, -1, -1 },
+                    .bone_weights = { 0.0f, 0.0f, 0.0f, 0.0f }
+                });
+                if (bone_ids.size() != 0) {
+                    for (uint32_t b = 0; b < 4; b++) {
+                        vertex_data[vertex_data.size() - 1].bone_ids[b] = bone_ids[i][b];
+                        vertex_data[vertex_data.size() - 1].bone_weights[b] = bone_weights[i][b];
+                    }
+                }
+            }
+            glGenBuffers(1, &mesh.vbo);
+            glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(VertexData) * vertex_data.size(), &vertex_data[0], GL_STATIC_DRAW);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)0);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)(3 * sizeof(float)));
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)(6 * sizeof(float)));
+            glEnableVertexAttribArray(3);
+            glVertexAttribIPointer(3, 4, GL_INT, sizeof(VertexData), (void*)offsetof(VertexData, bone_ids));
+            glEnableVertexAttribArray(4);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void*)offsetof(VertexData, bone_weights));
+
+            // Buffer the indices
+            const tinygltf::Accessor& index_accessor = gltf_model.accessors[primitive.indices];
+            const tinygltf::BufferView& index_buffer_view = gltf_model.bufferViews[index_accessor.bufferView];
+            const tinygltf::Buffer& index_buffer = gltf_model.buffers[index_buffer_view.buffer];
+            mesh.index_count = index_accessor.count;
+            mesh.index_offset = index_accessor.byteOffset;
+            mesh.index_component_type = index_accessor.componentType;
+            glGenBuffers(1, &mesh.ebo);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_view.byteLength, &index_buffer.data.at(0) + index_buffer_view.byteOffset, GL_STATIC_DRAW);
+
+            // Setup the siren material
+            const tinygltf::Material& material = gltf_model.materials[primitive.material];
+            const tinygltf::Texture& texture = gltf_model.textures[material.pbrMetallicRoughness.baseColorTexture.index];
+            const tinygltf::Image& image = gltf_model.images[texture.source];
+            SIREN_TRACE("Loading texture %i with source %i...", material.pbrMetallicRoughness.baseColorTexture.index, texture.source);
+
+            glGenTextures(1, &mesh.texture_diffuse);
+            glBindTexture(GL_TEXTURE_2D, mesh.texture_diffuse);
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+            GLenum format = GL_RGBA;
+            if (image.component == 1) {
+                format = GL_RED;
+            } else if (image.component == 2) {
+                format = GL_RG;
+            } else if (image.component == 3) {
+                format = GL_RGB;
+            } 
+
+            GLenum type = GL_UNSIGNED_BYTE;
+            if (image.bits == 16) {
+                type = GL_UNSIGNED_SHORT;
+            } 
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, format, type, &image.image.at(0));
+            SIREN_TRACE("Texture loaded successfully.");
+
+            model->meshes.push_back(mesh);
+            SIREN_TRACE("Mesh added successfully.");
+        } // End for each primitive
+    } // End while not node stack empty
+
+    // Cleanup vbos but do not delete index buffers yet
+    // TODO destructor to cleanup index buffers?
+    /*
+    SIREN_TRACE("Cleaning up vbos...");
+    for (auto it = vbos.begin(); it != vbos.end(); it++) {
+        const tinygltf::BufferView& buffer_view = gltf_model.bufferViews[it->first];
+        if (buffer_view.target == GL_ELEMENT_ARRAY_BUFFER) {
+            continue;
+        }
+
+        // glDeleteBuffers(1, &vbos[it->first]);
+    }
+    */
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    SIREN_INFO("glb loaded successfully.");
     return true;
 }
 

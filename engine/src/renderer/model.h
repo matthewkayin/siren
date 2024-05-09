@@ -23,14 +23,10 @@ namespace siren {
         uint32_t vbo;
         uint32_t ebo;
         uint32_t index_count;
+        uint32_t index_offset;
+        int index_component_type;
 
-        vec3 color_ambient;
-        vec3 color_diffuse;
-        vec3 color_specular;
-        float shininess;
-        float shininess_strength;
         Texture texture_diffuse;
-        Texture texture_emissive;
     };
 
     struct KeyframeVec3 {
@@ -62,7 +58,7 @@ namespace siren {
     };
 
     struct Model {
-        std::vector<Mesh> mesh;
+        std::vector<Mesh> meshes;
         std::vector<Bone> bones;
         std::vector<Animation> animations;
         std::unordered_map<std::string, int> bone_id_lookup;

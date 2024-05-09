@@ -195,8 +195,8 @@
     </controller>
   </library_controllers>
   <library_animations>
-    <animation id="action_container-v_portalgun_qc_skeleton_001" name="v_portalgun.qc_skeleton.001">
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Base_pose_matrix" name="v_portalgun.qc_skeleton.001">
+    <animation id="action_container-v_portalgun_qc_skeleton_001" name="fizzle">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Base_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Base_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Base_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -228,7 +228,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Base_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Base/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Front_Cover_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Front_Cover_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Front_Cover_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Front_Cover_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -260,7 +260,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Front_Cover_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Front_Cover/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_B_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_B_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_B_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_B_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -292,7 +292,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_B_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Arm1_B/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_C_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_C_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_C_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_C_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -324,7 +324,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm1_C_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Arm1_C/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_B_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_B_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_B_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_B_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -356,7 +356,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_B_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Arm2_B/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_C_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_C_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_C_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_C_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -388,7 +388,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Arm2_C_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Arm2_C/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_A_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_A_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_A_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_A_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -420,7 +420,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_A_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Wire1_A/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_B_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_B_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_B_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_B_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -452,7 +452,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_B_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Wire1_B/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_C_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_C_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_C_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_C_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -484,7 +484,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire1_C_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Wire1_C/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_A_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_A_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_A_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_A_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -516,7 +516,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_A_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Wire2_A/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_B_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_B_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_B_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_B_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
@@ -548,7 +548,7 @@
         </sampler>
         <channel source="#v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_B_pose_matrix-sampler" target="v_portalgun_qc_skeleton_001_ValveBiped_Wire2_B/transform"/>
       </animation>
-      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_C_pose_matrix" name="v_portalgun.qc_skeleton.001">
+      <animation id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_C_pose_matrix" name="fizzle">
         <source id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_C_pose_matrix-input">
           <float_array id="v_portalgun_qc_skeleton_001_fizzle_003_ValveBiped_Wire2_C_pose_matrix-input-array" count="16">0 0.04166662 0.08333331 0.125 0.1666666 0.2083333 0.25 0.2916666 0.3333333 0.375 0.4166666 0.4583333 0.5 0.5416667 0.5833333 0.625</float_array>
           <technique_common>
