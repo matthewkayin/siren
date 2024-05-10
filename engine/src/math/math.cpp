@@ -35,6 +35,14 @@ SIREN_INLINE int siren::min(int a, int b) {
     return a < b ? a : b;
 }
 
+SIREN_INLINE float siren::fmax(float a, float b) {
+    return a > b ? a : b;
+}
+
+SIREN_INLINE float siren::fmin(float a, float b) {
+    return a < b ? a : b;
+}
+
 SIREN_INLINE float siren::clampf(float n, float lower, float upper) {
     if (n < lower) {
         return lower;

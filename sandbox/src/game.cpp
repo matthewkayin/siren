@@ -30,7 +30,7 @@ bool game_init() {
     gamestate.transform = siren::model_transform_create(gamestate.test);
     gamestate.transform.root_transform.position = vec3(1.0f, -4.0f, -6.0f);
     gamestate.transform.root_transform.scale = siren::vec3(0.1f);
-    // siren::model_transform_animation_set(&gamestate.transform, "v_portalgun.qc_skeleton|fire1");
+    siren::model_transform_animation_set(&gamestate.transform, "fire1");
 
     return true;
 }
@@ -74,7 +74,7 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    // siren::model_transform_animation_update(&gamestate.transform, delta);
+    siren::model_transform_animation_update(&gamestate.transform, delta);
 
     return true;
 }

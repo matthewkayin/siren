@@ -21,10 +21,6 @@ uniform mat4 bone_matrix[MAX_BONES];
 void main() {
     vec4 total_position = vec4(0.0);
     for (int i = 0; i < MAX_BONE_INFLUENCE; i++) {
-        if (bone_ids[i] == -1) {
-            continue;
-        }
-
         if (bone_ids[i] > MAX_BONES - 1) {
             total_position = vec4(vertex_position, 1.0);
             break;

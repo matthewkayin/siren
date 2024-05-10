@@ -4,11 +4,7 @@ REM Build Everything
 ECHO "Building everything..."
 
 REM Engine
-make -f "makefile.library.windows.mak" all ASSEMBLY="engine" ADDL_INC_FLAGS="-Iengine\include" ADDL_LINK_FLAGS="-luser32 -lSDL2 -lSDL2_ttf -lassimp-vc143-mtd -Lengine/lib/windows"
-IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
-
-REM Daedalus
-make -f "makefile.executable.windows.mak" all ASSEMBLY="daedalus" ADDL_INC_FLAGS="-Iengine/src" ADDL_LINK_FLAGS="-lassimp-vc143-mtd -Lengine/lib/windows"
+make -f "makefile.library.windows.mak" all ASSEMBLY="engine" ADDL_INC_FLAGS="-Iengine\include" ADDL_LINK_FLAGS="-luser32 -lSDL2 -lSDL2_ttf -Lengine/lib/windows"
 IF %ERRORLEVEL% NEQ 0 (echo Error:%ERRORLEVEL% && exit)
 
 REM Sandbox

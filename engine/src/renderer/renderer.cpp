@@ -390,7 +390,7 @@ void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, si
     };
     for (int bone_id = 0; bone_id < model->bones.size(); bone_id++) {
         mat4 parent_transform = model->bones[bone_id].parent_id == -1 ? mat4(1.0f) : bone_matrix[model->bones[bone_id].parent_id];
-        bone_matrix[bone_id] = parent_transform * transform.bone_transform[bone_id];
+        bone_matrix[bone_id] = parent_transform * transform.bone_transform[bone_id]; 
         bone_final_matrix[bone_id] = bone_matrix[bone_id] * model->bones[bone_id].inverse_bind_transform;
     }
     shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_final_matrix, model->bones.size());
