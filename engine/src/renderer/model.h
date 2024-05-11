@@ -65,21 +65,25 @@ namespace siren {
         std::unordered_map<std::string, int> animation_id_lookup;
     };
 
+    typedef uint32_t ModelHandle;
+    static const ModelHandle MODEL_HANDLE_NULL = UINT32_MAX;
+
+    SIREN_API ModelHandle model_acquire(const char* path);
+    const Model& model_get(ModelHandle handle);
+
     struct ModelTransform {
         static const int ANIMATION_NONE = -1;
 
-        // TODO, change this to using uint32_t IDs as a model reference so that if a Model gets freed, we can check within the transform code that we are not referencing a dangling model
-        Model* model;
+        SIREN_API ModelTransform();
+        SIREN_API ModelTransform(ModelHandle handle);
+        SIREN_API void animation_set(std::string name);
+        SIREN_API void animation_update(float delta);
+
+        ModelHandle handle;
         Transform root_transform;
         std::vector<mat4> bone_transform;
 
         int animation;
         float animation_timer;
     };
-
-    SIREN_API Model* model_acquire(const char* path);
-
-    SIREN_API ModelTransform model_transform_create(Model* model);
-    SIREN_API void model_transform_animation_set(ModelTransform* model_transform, const char* name);
-    SIREN_API void model_transform_animation_update(ModelTransform* model_transform, float delta);
 }

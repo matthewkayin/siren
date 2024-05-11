@@ -15,38 +15,42 @@
 #include <unordered_map>
 #include <fstream>
 
+static std::vector<siren::Model> models;
+static std::unordered_map<std::string, siren::ModelHandle> model_handles;
 
-static std::unordered_map<std::string, siren::Model> models;
+bool model_load(siren::Model* model, std::string path);
 
-bool model_load(siren::Model* model, const char* path);
-
-siren::Model* siren::model_acquire(const char* path) {
+siren::ModelHandle siren::model_acquire(const char* path) {
     std::string key = std::string(path);
-    auto it = models.find(key);
-    if (it != models.end()) {
-        return &it->second;
+    auto it = model_handles.find(key);
+    if (it != model_handles.end()) {
+        return it->second;
     }
 
     Model model;
-    if (!model_load(&model, path)) {
-        return nullptr;
+    if (!model_load(&model, resource_get_base_path() + path)) {
+        return RESOURCE_HANDLE_NULL;
     }
 
-    models[key] = model;
-    return &models[key];
+    models.push_back(model);
+    ModelHandle handle = models.size() - 1;
+    model_handles[key] = handle;
+    return handle;
 }
 
-bool model_load(siren::Model* model, const char* path) {
-    std::string full_path = std::string(siren::resource_get_base_path()) + std::string(path);
+const siren::Model& siren::model_get(siren::ModelHandle handle) {
+    return models[handle];
+}
 
-    SIREN_INFO("Loading glb %s...", full_path.c_str());
+bool model_load(siren::Model* model, std::string path) {
+    SIREN_INFO("Loading model %s...", path.c_str());
 
     // Read the file
     tinygltf::TinyGLTF loader;
     std::string error;
     std::string warning;
     tinygltf::Model gltf_model;
-    bool success = loader.LoadBinaryFromFile(&gltf_model, &error, &warning, full_path);
+    bool success = loader.LoadBinaryFromFile(&gltf_model, &error, &warning, path);
     if (!warning.empty()) {
         SIREN_WARN("%s", warning.c_str());
     }
@@ -55,11 +59,9 @@ bool model_load(siren::Model* model, const char* path) {
     }
 
     if (!success) {
-        SIREN_ERROR("Failed to load glb file %s", path);
+        SIREN_ERROR("Failed to load glb file %s", path.c_str());
         return false;
     }
-
-    SIREN_TRACE("Opened glb file %s", path);
 
     // Create meshes
     const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene];
@@ -74,7 +76,6 @@ bool model_load(siren::Model* model, const char* path) {
         node_stack.pop_back();
         SIREN_ASSERT(node_index >= 0 && node_index < gltf_model.nodes.size());
         tinygltf::Node& node = gltf_model.nodes[node_index];
-        SIREN_TRACE("Handling node with index %i and name %s", node_index, node.name.c_str());
 
         // Add children to the stack
         for (uint32_t child_index = 0; child_index < node.children.size(); child_index++) {
@@ -86,7 +87,6 @@ bool model_load(siren::Model* model, const char* path) {
             continue;
         }
 
-        SIREN_TRACE("Node has mesh. Looping through primitives.");
         // Create a mesh for this node
         const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[node.mesh];
         for (uint32_t primitive_index = 0; primitive_index < gltf_mesh.primitives.size(); primitive_index++) {
@@ -236,7 +236,6 @@ bool model_load(siren::Model* model, const char* path) {
         for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
             const tinygltf::Node& bone_node = gltf_model.nodes[skin.joints[bone_index]];
             node_id_to_bone_id[skin.joints[bone_index]] = bone_index;
-            SIREN_TRACE("bone id %u node id %i name %s", bone_index, skin.joints[bone_index], bone_node.name.c_str());
 
             siren::Transform transform = (siren::Transform) {
                 .position = siren::vec3(0.0f),
@@ -260,7 +259,6 @@ bool model_load(siren::Model* model, const char* path) {
                 .parent_id = -1,
                 .keyframes = std::vector<siren::Keyframes>(),
                 .transform = siren::transform_to_matrix(transform),
-                // .transform = siren::mat4(1.0f),
                 .inverse_bind_transform = inverse_bind_transform
             });
         } // End for each bone index
@@ -272,11 +270,13 @@ bool model_load(siren::Model* model, const char* path) {
                 model->bones[child_bone_id].parent_id = bone_index;
             }
         }
+        SIREN_TRACE("--- Model Bones ---");
         for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
-            SIREN_TRACE("bone %i name %s parent %i", bone_index, gltf_model.nodes[skin.joints[bone_index]].name.c_str(), model->bones[bone_index].parent_id);
+            SIREN_TRACE("Bone %i name %s parent %i", bone_index, gltf_model.nodes[skin.joints[bone_index]].name.c_str(), model->bones[bone_index].parent_id);
         }
 
         // Import animations
+        SIREN_TRACE("--- Model Animations ---");
         for (uint32_t animation_index = 0; animation_index < gltf_model.animations.size(); animation_index++) {
             const tinygltf::Animation& animation = gltf_model.animations[animation_index];
 
@@ -341,59 +341,58 @@ bool model_load(siren::Model* model, const char* path) {
     return true;
 }
 
-siren::ModelTransform siren::model_transform_create(siren::Model* model) {
-    ModelTransform result;
-
-    result.model = model;
-    result.root_transform = transform_identity();
-
-    std::vector<mat4> bone_transform;
-    for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-        // bone_transform.push_back(mat4(1.0f));
-        bone_transform.push_back(model->bones[bone_index].transform);
-    }
-    result.bone_transform = bone_transform;
-
-    result.animation = ModelTransform::ANIMATION_NONE;
-    result.animation_timer = 0.0f;
-
-    return result;
+siren::ModelTransform::ModelTransform() {
+    handle = RESOURCE_HANDLE_NULL;
 }
 
-void siren::model_transform_animation_set(ModelTransform* model_transform, const char* name) {
-    auto animation_id_it = model_transform->model->animation_id_lookup.find(std::string(name));
-    if (animation_id_it == model_transform->model->animation_id_lookup.end()) {
-        SIREN_WARN("called model_transform_set_animation() but animation '%s' does not exist on the model.", name);
+siren::ModelTransform::ModelTransform(siren::ModelHandle handle) {
+    this->handle = handle;
+    root_transform = transform_identity();
+
+    const Model& model = model_get(handle);
+    for (uint32_t bone_index = 0; bone_index < model.bones.size(); bone_index++) {
+        bone_transform.push_back(model.bones[bone_index].transform);
+    }
+
+    animation = ModelTransform::ANIMATION_NONE;
+    animation_timer = 0.0f;
+}
+
+void siren::ModelTransform::animation_set(std::string name) {
+    const Model& model = model_get(handle);
+
+    auto animation_id_it = model.animation_id_lookup.find(name);
+    if (animation_id_it == model.animation_id_lookup.end()) {
+        SIREN_WARN("called model_transform_set_animation() but animation '%s' does not exist on the model.", name.c_str());
         return;
     }
 
-    model_transform->animation = animation_id_it->second;
-    SIREN_TRACE("set to animation id %i", model_transform->animation);
-    model_transform->animation_timer = 0.0f;
+    animation = animation_id_it->second;
+    animation_timer = 0.0f;
 }
 
-void siren::model_transform_animation_update(ModelTransform* model_transform, float delta) {
-    Model* model = model_transform->model;
-    int animation_id = model_transform->animation;
+void siren::ModelTransform::animation_update(float delta) {
+    const Model& model = model_get(handle);
 
-    model_transform->animation_timer += delta;
-    // Loops animation
-    if (model_transform->animation_timer > model->animations[animation_id].duration) {
-        model_transform->animation_timer -= model->animations[animation_id].duration;
+    // Increment timer and check if animation finished
+    animation_timer += delta;
+    if (animation_timer > model.animations[animation].duration) {
+        animation_timer -= model.animations[animation].duration;
     }
 
-    for (uint32_t bone_index = 0; bone_index < model_transform->bone_transform.size(); bone_index++) {
-        Keyframes& bone_keyframes = model->bones[bone_index].keyframes[animation_id];
+    // Compute transforms for each bone
+    for (uint32_t bone_index = 0; bone_index < bone_transform.size(); bone_index++) {
+        const Keyframes& bone_keyframes = model.bones[bone_index].keyframes[animation];
 
         if (bone_keyframes.positions.size() == 0) {
-            model_transform->bone_transform[bone_index] = model->bones[bone_index].transform;
+            bone_transform[bone_index] = model.bones[bone_index].transform;
             continue;
         }
 
         vec3 bone_position;
         for (uint32_t position_index = 0; position_index < bone_keyframes.positions.size() - 1; position_index++) {
-            if (model_transform->animation_timer < bone_keyframes.positions[position_index + 1].time) {
-                float percent = (model_transform->animation_timer - bone_keyframes.positions[position_index].time) / (bone_keyframes.positions[position_index + 1].time - bone_keyframes.positions[position_index].time);
+            if (animation_timer < bone_keyframes.positions[position_index + 1].time) {
+                float percent = (animation_timer - bone_keyframes.positions[position_index].time) / (bone_keyframes.positions[position_index + 1].time - bone_keyframes.positions[position_index].time);
                 bone_position = vec3::lerp(bone_keyframes.positions[position_index].value, bone_keyframes.positions[position_index + 1].value, percent);
                 break;
             }
@@ -401,8 +400,8 @@ void siren::model_transform_animation_update(ModelTransform* model_transform, fl
 
         quat bone_rotation;
         for (uint32_t rotation_index = 0; rotation_index < bone_keyframes.rotations.size() - 1; rotation_index++) {
-            if (model_transform->animation_timer < bone_keyframes.rotations[rotation_index + 1].time) {
-                float percent = (model_transform->animation_timer - bone_keyframes.rotations[rotation_index].time) / (bone_keyframes.rotations[rotation_index + 1].time - bone_keyframes.rotations[rotation_index].time);
+            if (animation_timer < bone_keyframes.rotations[rotation_index + 1].time) {
+                float percent = (animation_timer - bone_keyframes.rotations[rotation_index].time) / (bone_keyframes.rotations[rotation_index + 1].time - bone_keyframes.rotations[rotation_index].time);
                 bone_rotation = quat::slerp(bone_keyframes.rotations[rotation_index].value, bone_keyframes.rotations[rotation_index + 1].value, percent);
                 break;
             }
@@ -410,17 +409,17 @@ void siren::model_transform_animation_update(ModelTransform* model_transform, fl
 
         vec3 bone_scale;
         for (uint32_t scale_index = 0; scale_index < bone_keyframes.scales.size() - 1; scale_index++) {
-            if (model_transform->animation_timer < bone_keyframes.scales[scale_index + 1].time) {
-                float percent = (model_transform->animation_timer - bone_keyframes.scales[scale_index].time) / (bone_keyframes.scales[scale_index + 1].time - bone_keyframes.scales[scale_index].time);
+            if (animation_timer < bone_keyframes.scales[scale_index + 1].time) {
+                float percent = (animation_timer - bone_keyframes.scales[scale_index].time) / (bone_keyframes.scales[scale_index + 1].time - bone_keyframes.scales[scale_index].time);
                 bone_scale = vec3::lerp(bone_keyframes.scales[scale_index].value, bone_keyframes.scales[scale_index + 1].value, percent);
                 break;
             }
         }
 
-        model_transform->bone_transform[bone_index] = transform_to_matrix((Transform) {
+        bone_transform[bone_index] = transform_to_matrix((Transform) {
             .position = bone_position,
             .rotation = bone_rotation,
             .scale = bone_scale
         });
-    }
+    } // End for each bone
 }

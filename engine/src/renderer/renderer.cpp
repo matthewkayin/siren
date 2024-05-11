@@ -290,32 +290,34 @@ void siren::renderer_present_frame() {
     SDL_GL_SwapWindow(state.window);
 }
 
-void siren::renderer_render_text(const char* text, siren::Font* font, siren::ivec2 position, siren::vec3 color) {
+void siren::renderer_render_text(const char* text, siren::FontHandle font_handle, siren::ivec2 position, siren::vec3 color) {
+    const Font& font = font_get(font_handle);
+
     // TODO some sort of state to prevent making this call for each text?
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    vec2 glyph_size = vec2((float)font->glyph_width, (float)font->glyph_height);
+    vec2 glyph_size = vec2((float)font.glyph_width, (float)font.glyph_height);
 
     shader_use(state.text_shader);
     shader_set_uniform_vec2(state.text_shader, "glyph_size", glyph_size);
     shader_set_uniform_vec3(state.text_shader, "text_color", color);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, font->atlas);
+    glBindTexture(GL_TEXTURE_2D, font.atlas);
     glBindVertexArray(state.glyph_vao);
 
     vec2 render_position = vec2((float)position.x, (float)position.y);
     vec2 glyph_offset = vec2(0.0f, 0.0f);
     for (const char* c = text; *c != '\0'; c++) {
         int glyph_index = ((int)*c) - Font::FIRST_CHAR;
-        glyph_offset.x = (float)(font->glyph_width * glyph_index);
+        glyph_offset.x = (float)(font.glyph_width * glyph_index);
 
         shader_set_uniform_vec2(state.text_shader, "render_position", render_position);
         shader_set_uniform_vec2(state.text_shader, "glyph_offset", glyph_offset);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        render_position.x += font->glyph_width;
+        render_position.x += font.glyph_width;
     }
 
     glBindVertexArray(0);
@@ -362,7 +364,8 @@ void siren::renderer_render_cube(siren::Camera* camera, siren::Transform& transf
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, siren::ModelTransform& transform) {
+void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle model_handle, siren::ModelTransform& transform) {
+    const Model& model = model_get(model_handle);
     mat4 model_matrix = transform_to_matrix(transform.root_transform);
 
     shader_use(state.phong_shader);
@@ -388,15 +391,15 @@ void siren::renderer_render_model(siren::Camera* camera, siren::Model* model, si
         int id;
         mat4 parent_transform;
     };
-    for (int bone_id = 0; bone_id < model->bones.size(); bone_id++) {
-        mat4 parent_transform = model->bones[bone_id].parent_id == -1 ? mat4(1.0f) : bone_matrix[model->bones[bone_id].parent_id];
+    for (int bone_id = 0; bone_id < model.bones.size(); bone_id++) {
+        mat4 parent_transform = model.bones[bone_id].parent_id == -1 ? mat4(1.0f) : bone_matrix[model.bones[bone_id].parent_id];
         bone_matrix[bone_id] = parent_transform * transform.bone_transform[bone_id]; 
-        bone_final_matrix[bone_id] = bone_matrix[bone_id] * model->bones[bone_id].inverse_bind_transform;
+        bone_final_matrix[bone_id] = bone_matrix[bone_id] * model.bones[bone_id].inverse_bind_transform;
     }
-    shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_final_matrix, model->bones.size());
+    shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_final_matrix, model.bones.size());
 
-    for (uint32_t mesh_index = 0; mesh_index < model->meshes.size(); mesh_index++) {
-        const Mesh& mesh = model->meshes[mesh_index];
+    for (uint32_t mesh_index = 0; mesh_index < model.meshes.size(); mesh_index++) {
+        const Mesh& mesh = model.meshes[mesh_index];
 
         shader_set_uniform_mat4(state.phong_shader, "model", &model_matrix);
 

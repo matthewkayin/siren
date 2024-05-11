@@ -12,9 +12,9 @@
 #include <cstdio>
 
 struct GameState {
-    siren::Font* debug_font;
+    siren::FontHandle debug_font;
     siren::Camera camera;
-    siren::Model* test;
+    siren::ModelHandle test;
     siren::ModelTransform transform;
 };
 static GameState gamestate;
@@ -27,10 +27,13 @@ bool game_init() {
     gamestate.debug_font = siren::font_acquire("font/hack.ttf", 10);
     gamestate.camera = siren::Camera();
     gamestate.test = siren::model_acquire("model/gun/gun.glb");
-    gamestate.transform = siren::model_transform_create(gamestate.test);
+    if (gamestate.test == siren::MODEL_HANDLE_NULL) {
+        return false;
+    }
+    gamestate.transform = siren::ModelTransform(gamestate.test);
     gamestate.transform.root_transform.position = vec3(1.0f, -4.0f, -6.0f);
     gamestate.transform.root_transform.scale = siren::vec3(0.1f);
-    siren::model_transform_animation_set(&gamestate.transform, "fire1");
+    gamestate.transform.animation_set("fire1");
 
     return true;
 }
@@ -74,7 +77,7 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    siren::model_transform_animation_update(&gamestate.transform, delta);
+    gamestate.transform.animation_update(delta);
 
     return true;
 }

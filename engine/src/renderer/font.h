@@ -11,5 +11,8 @@ namespace siren {
         uint32_t glyph_height;
     };
 
-    SIREN_API Font* font_acquire(const char* path, uint16_t size);
+    typedef uint32_t FontHandle;
+    static const FontHandle FONT_HANDLE_NULL = UINT32_MAX;
+    SIREN_API FontHandle font_acquire(const char* path, uint16_t size);
+    const Font& font_get(FontHandle handle);
 }
