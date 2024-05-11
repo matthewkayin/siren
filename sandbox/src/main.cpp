@@ -4,7 +4,6 @@
 #include <math/math.h>
 
 #include <cstdio>
-#include <cstring>
 
 int main() {
     siren::ApplicationConfig config = (siren::ApplicationConfig) {
