@@ -31,9 +31,9 @@ bool game_init() {
         return false;
     }
     gamestate.transform = siren::ModelTransform(gamestate.test);
-    gamestate.transform.root_transform.position = vec3(1.0f, -4.0f, -6.0f);
+    gamestate.transform.root_transform.position = vec3(0.0f);
     gamestate.transform.root_transform.scale = siren::vec3(0.1f);
-    gamestate.transform.animation_set("fire1");
+    // gamestate.transform.animation_set("fire1");
 
     return true;
 }
@@ -77,7 +77,7 @@ bool game_update(float delta) {
         gamestate.camera.apply_yaw((float)mouse_rel.x * 0.1f);
     }
 
-    gamestate.transform.animation_update(delta);
+    // gamestate.transform.animation_update(delta);
 
     return true;
 }

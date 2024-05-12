@@ -26,7 +26,11 @@ namespace siren {
         uint32_t index_offset;
         int index_component_type;
 
-        Texture texture_diffuse;
+        Texture material_albedo;
+        Texture material_metallic_roughness;
+        Texture material_normal;
+        Texture material_emissive;
+        Texture material_occlusion;
     };
 
     struct KeyframeVec3 {
@@ -61,7 +65,6 @@ namespace siren {
         std::vector<Mesh> meshes;
         std::vector<Bone> bones;
         std::vector<Animation> animations;
-        std::unordered_map<std::string, int> bone_id_lookup;
         std::unordered_map<std::string, int> animation_id_lookup;
     };
 

@@ -42,6 +42,40 @@ const siren::Model& siren::model_get(siren::ModelHandle handle) {
     return models[handle];
 }
 
+uint32_t texture_create_from_glb(const tinygltf::Model& gltf_model, int texture_index) {
+    const tinygltf::Texture& gltf_texture = gltf_model.textures[texture_index];
+    const tinygltf::Image& image = gltf_model.images[gltf_texture.source];
+    SIREN_TRACE("Loading glb texture %s...", image.name.c_str());
+
+    uint32_t texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    GLenum format = GL_RGBA;
+    if (image.component == 1) {
+        format = GL_RED;
+    } else if (image.component == 2) {
+        format = GL_RG;
+    } else if (image.component == 3) {
+        format = GL_RGB;
+    } 
+
+    GLenum type = GL_UNSIGNED_BYTE;
+    if (image.bits == 16) {
+        type = GL_UNSIGNED_SHORT;
+    } 
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, format, type, &image.image.at(0));
+    SIREN_TRACE("Texture loaded successfully.");
+
+    return texture;
+}
+
 bool model_load(siren::Model* model, std::string path) {
     SIREN_INFO("Loading model %s...", path.c_str());
 
@@ -155,7 +189,7 @@ bool model_load(siren::Model* model, std::string path) {
                     .position = positions[i],
                     .normal = normals[i],
                     .tex_coord = tex_coords[i],
-                    .bone_ids = { 0, 0, 0, 0 },
+                    .bone_ids = { -1, -1, -1, -1 },
                     .bone_weights = { 0.0f, 0.0f, 0.0f, 0.0f }
                 });
                 // Making this check because bone_ids are optional on a model
@@ -193,144 +227,164 @@ bool model_load(siren::Model* model, std::string path) {
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_view.byteLength, &index_buffer.data.at(0) + index_buffer_view.byteOffset, GL_STATIC_DRAW);
 
             // Setup the siren material
+            // Albedo
             const tinygltf::Material& material = gltf_model.materials[primitive.material];
-            const tinygltf::Texture& texture = gltf_model.textures[material.pbrMetallicRoughness.baseColorTexture.index];
-            const tinygltf::Image& image = gltf_model.images[texture.source];
-            SIREN_TRACE("Loading texture %i with source %i...", material.pbrMetallicRoughness.baseColorTexture.index, texture.source);
-
-            glGenTextures(1, &mesh.texture_diffuse);
-            glBindTexture(GL_TEXTURE_2D, mesh.texture_diffuse);
-            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-            GLenum format = GL_RGBA;
-            if (image.component == 1) {
-                format = GL_RED;
-            } else if (image.component == 2) {
-                format = GL_RG;
-            } else if (image.component == 3) {
-                format = GL_RGB;
+            if (material.pbrMetallicRoughness.baseColorTexture.index != -1) {
+                mesh.material_albedo = texture_create_from_glb(gltf_model, material.pbrMetallicRoughness.baseColorTexture.index);
+            } else {
+                SIREN_ASSERT(material.pbrMetallicRoughness.baseColorFactor.size() != 0);
+                mesh.material_albedo = siren::texture_acquire_solidcolor(
+                    (uint8_t)(255.0f * material.pbrMetallicRoughness.baseColorFactor[0]),
+                    (uint8_t)(255.0f * material.pbrMetallicRoughness.baseColorFactor[1]),
+                    (uint8_t)(255.0f * material.pbrMetallicRoughness.baseColorFactor[2]),
+                    255);
             } 
-
-            GLenum type = GL_UNSIGNED_BYTE;
-            if (image.bits == 16) {
-                type = GL_UNSIGNED_SHORT;
-            } 
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, format, type, &image.image.at(0));
-            SIREN_TRACE("Texture loaded successfully.");
+            // Metallic / Roughness
+            if (material.pbrMetallicRoughness.metallicRoughnessTexture.index != -1) {
+                mesh.material_metallic_roughness = texture_create_from_glb(gltf_model, material.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            } else {
+                mesh.material_metallic_roughness = siren::texture_acquire_solidcolor(
+                    0,
+                    (uint8_t)(255.0f * material.pbrMetallicRoughness.roughnessFactor),
+                    (uint8_t)(255.0f * material.pbrMetallicRoughness.metallicFactor),
+                    0
+                );
+            }
+            // Normal
+            if (material.normalTexture.index != -1) {
+                mesh.material_normal = texture_create_from_glb(gltf_model, material.normalTexture.index);
+            } else {
+                mesh.material_normal = siren::texture_acquire_solidcolor(128, 128, 255, 0);
+            }
+            // Emissive
+            if (material.emissiveTexture.index != -1) {
+                mesh.material_emissive = texture_create_from_glb(gltf_model, material.emissiveTexture.index);
+            } else if (material.emissiveFactor.size() != 0) {
+                mesh.material_emissive = siren::texture_acquire_solidcolor(
+                    (uint8_t)(255.0f * material.emissiveFactor[0]),
+                    (uint8_t)(255.0f * material.emissiveFactor[1]),
+                    (uint8_t)(255.0f * material.emissiveFactor[2]),
+                    0);
+            } else {
+                mesh.material_emissive = siren::texture_acquire_solidcolor(0, 0, 0, 0);
+            }
+            // Occlusion
+            if (material.occlusionTexture.index != -1) {
+                mesh.material_occlusion = texture_create_from_glb(gltf_model, material.occlusionTexture.index);
+            } else {
+                mesh.material_occlusion = siren::texture_acquire_solidcolor(255, 0, 0, 0);
+            }
 
             model->meshes.push_back(mesh);
             SIREN_TRACE("Mesh added successfully.");
         } // End for each primitive
 
         // ~ Read the bones ~
-        const tinygltf::Skin& skin = gltf_model.skins[node.skin];
-        const tinygltf::Accessor& inverse_bind_accessor = gltf_model.accessors[skin.inverseBindMatrices];
-        const tinygltf::BufferView& inverse_bind_buffer_view = gltf_model.bufferViews[inverse_bind_accessor.bufferView];
-        const tinygltf::Buffer& inverse_bind_buffer = gltf_model.buffers[inverse_bind_buffer_view.buffer];
-        std::unordered_map<int, int> node_id_to_bone_id;
-        for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
-            const tinygltf::Node& bone_node = gltf_model.nodes[skin.joints[bone_index]];
-            node_id_to_bone_id[skin.joints[bone_index]] = bone_index;
+        if (node.skin != -1) {
+            const tinygltf::Skin& skin = gltf_model.skins[node.skin];
+            const tinygltf::Accessor& inverse_bind_accessor = gltf_model.accessors[skin.inverseBindMatrices];
+            const tinygltf::BufferView& inverse_bind_buffer_view = gltf_model.bufferViews[inverse_bind_accessor.bufferView];
+            const tinygltf::Buffer& inverse_bind_buffer = gltf_model.buffers[inverse_bind_buffer_view.buffer];
+            std::unordered_map<int, int> node_id_to_bone_id;
+            for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
+                const tinygltf::Node& bone_node = gltf_model.nodes[skin.joints[bone_index]];
+                node_id_to_bone_id[skin.joints[bone_index]] = bone_index;
 
-            siren::Transform transform = (siren::Transform) {
-                .position = siren::vec3(0.0f),
-                .rotation = siren::quat(),
-                .scale = siren::vec3(1.0f)
-            };
-            if (bone_node.translation.size() != 0) {
-                transform.position = siren::vec3(bone_node.translation.at(0), bone_node.translation.at(1), bone_node.translation.at(2));
+                siren::Transform transform = (siren::Transform) {
+                    .position = siren::vec3(0.0f),
+                    .rotation = siren::quat(),
+                    .scale = siren::vec3(1.0f)
+                };
+                if (bone_node.translation.size() != 0) {
+                    transform.position = siren::vec3(bone_node.translation.at(0), bone_node.translation.at(1), bone_node.translation.at(2));
+                }
+                if (bone_node.rotation.size() != 0) {
+                    transform.rotation = siren::quat(bone_node.rotation.at(0), bone_node.rotation.at(1), bone_node.rotation.at(2), bone_node.rotation.at(3));
+                }
+                if (bone_node.scale.size() != 0) {
+                    transform.scale = siren::vec3(bone_node.scale.at(0), bone_node.scale.at(1), bone_node.scale.at(2));
+                }
+
+                siren::mat4 inverse_bind_transform;
+                memcpy(&inverse_bind_transform[0], &inverse_bind_buffer.data.at(0) + inverse_bind_buffer_view.byteOffset + (bone_index * sizeof(siren::mat4)), sizeof(siren::mat4));
+
+                model->bones.push_back((siren::Bone) {
+                    .parent_id = -1,
+                    .keyframes = std::vector<siren::Keyframes>(),
+                    .transform = siren::transform_to_matrix(transform),
+                    .inverse_bind_transform = inverse_bind_transform
+                });
+            } // End for each bone index
+            // Determine bone parents
+            for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
+                const tinygltf::Node& bone_node = gltf_model.nodes[skin.joints[bone_index]];
+                for (uint32_t child_index = 0; child_index < bone_node.children.size(); child_index++) {
+                    int child_bone_id = node_id_to_bone_id[bone_node.children[child_index]];
+                    model->bones[child_bone_id].parent_id = bone_index;
+                }
             }
-            if (bone_node.rotation.size() != 0) {
-                transform.rotation = siren::quat(bone_node.rotation.at(0), bone_node.rotation.at(1), bone_node.rotation.at(2), bone_node.rotation.at(3));
-            }
-            if (bone_node.scale.size() != 0) {
-                transform.scale = siren::vec3(bone_node.scale.at(0), bone_node.scale.at(1), bone_node.scale.at(2));
-            }
-
-            siren::mat4 inverse_bind_transform;
-            memcpy(&inverse_bind_transform[0], &inverse_bind_buffer.data.at(0) + inverse_bind_buffer_view.byteOffset + (bone_index * sizeof(siren::mat4)), sizeof(siren::mat4));
-
-            model->bones.push_back((siren::Bone) {
-                .parent_id = -1,
-                .keyframes = std::vector<siren::Keyframes>(),
-                .transform = siren::transform_to_matrix(transform),
-                .inverse_bind_transform = inverse_bind_transform
-            });
-        } // End for each bone index
-        // Determine bone parents
-        for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
-            const tinygltf::Node& bone_node = gltf_model.nodes[skin.joints[bone_index]];
-            for (uint32_t child_index = 0; child_index < bone_node.children.size(); child_index++) {
-                int child_bone_id = node_id_to_bone_id[bone_node.children[child_index]];
-                model->bones[child_bone_id].parent_id = bone_index;
-            }
-        }
-        SIREN_TRACE("--- Model Bones ---");
-        for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
-            SIREN_TRACE("Bone %i name %s parent %i", bone_index, gltf_model.nodes[skin.joints[bone_index]].name.c_str(), model->bones[bone_index].parent_id);
-        }
-
-        // Import animations
-        SIREN_TRACE("--- Model Animations ---");
-        for (uint32_t animation_index = 0; animation_index < gltf_model.animations.size(); animation_index++) {
-            const tinygltf::Animation& animation = gltf_model.animations[animation_index];
-
-            uint32_t animation_id = model->bones[0].keyframes.size();
-            for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-                model->bones[bone_index].keyframes.push_back(siren::Keyframes());
+            SIREN_TRACE("--- Model Bones ---");
+            for (int bone_index = 0; bone_index < skin.joints.size(); bone_index++) {
+                SIREN_TRACE("Bone %i name %s parent %i", bone_index, gltf_model.nodes[skin.joints[bone_index]].name.c_str(), model->bones[bone_index].parent_id);
             }
 
-            float animation_duration = 0.0f;
-            SIREN_TRACE("Animation %u: %s", animation_index, animation.name.c_str());
+            // Import animations
+            SIREN_TRACE("--- Model Animations ---");
+            for (uint32_t animation_index = 0; animation_index < gltf_model.animations.size(); animation_index++) {
+                const tinygltf::Animation& animation = gltf_model.animations[animation_index];
 
-            for (uint32_t channel_index = 0; channel_index < animation.channels.size(); channel_index++) {
-                const tinygltf::AnimationChannel& channel = animation.channels[channel_index];
-                const tinygltf::AnimationSampler& sampler = animation.samplers[channel.sampler];
+                uint32_t animation_id = model->bones[0].keyframes.size();
+                for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
+                    model->bones[bone_index].keyframes.push_back(siren::Keyframes());
+                }
 
-                const tinygltf::Accessor& time_accessor = gltf_model.accessors[sampler.input];
-                const tinygltf::BufferView& time_buffer_view = gltf_model.bufferViews[time_accessor.bufferView];
-                const tinygltf::Buffer& time_buffer = gltf_model.buffers[time_buffer_view.buffer];
+                float animation_duration = 0.0f;
+                SIREN_TRACE("Animation %u: %s", animation_index, animation.name.c_str());
 
-                const tinygltf::Accessor& value_accessor = gltf_model.accessors[sampler.output];
-                const tinygltf::BufferView& value_buffer_view = gltf_model.bufferViews[value_accessor.bufferView];
-                const tinygltf::Buffer& value_buffer = gltf_model.buffers[value_buffer_view.buffer];
+                for (uint32_t channel_index = 0; channel_index < animation.channels.size(); channel_index++) {
+                    const tinygltf::AnimationChannel& channel = animation.channels[channel_index];
+                    const tinygltf::AnimationSampler& sampler = animation.samplers[channel.sampler];
 
-                SIREN_ASSERT(node_id_to_bone_id.find(channel.target_node) != node_id_to_bone_id.end());
-                int bone_id = node_id_to_bone_id[channel.target_node];
-                for (uint32_t i = 0; i < time_accessor.count; i++) {
-                    if (channel.target_path == "translation") {
-                        siren::KeyframeVec3 keyframe;
-                        memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
-                        memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::vec3)), sizeof(siren::vec3));
-                        animation_duration = siren::fmax(animation_duration, keyframe.time);
-                        model->bones[bone_id].keyframes[animation_id].positions.push_back(keyframe);
-                    } else if (channel.target_path == "rotation") {
-                        siren::KeyframeQuat keyframe;
-                        memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
-                        memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::quat)), sizeof(siren::quat));
-                        animation_duration = siren::fmax(animation_duration, keyframe.time);
-                        model->bones[bone_id].keyframes[animation_id].rotations.push_back(keyframe);
-                    } else if (channel.target_path == "scale") {
-                        siren::KeyframeVec3 keyframe;
-                        memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
-                        memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::vec3)), sizeof(siren::vec3));
-                        animation_duration = siren::fmax(animation_duration, keyframe.time);
-                        model->bones[bone_id].keyframes[animation_id].scales.push_back(keyframe);
-                    }
-                } // End for each keyframe in channel
-            } // End for each animation channel
+                    const tinygltf::Accessor& time_accessor = gltf_model.accessors[sampler.input];
+                    const tinygltf::BufferView& time_buffer_view = gltf_model.bufferViews[time_accessor.bufferView];
+                    const tinygltf::Buffer& time_buffer = gltf_model.buffers[time_buffer_view.buffer];
 
-            model->animations.push_back((siren::Animation) {
-                .duration = animation_duration,
+                    const tinygltf::Accessor& value_accessor = gltf_model.accessors[sampler.output];
+                    const tinygltf::BufferView& value_buffer_view = gltf_model.bufferViews[value_accessor.bufferView];
+                    const tinygltf::Buffer& value_buffer = gltf_model.buffers[value_buffer_view.buffer];
+
+                    SIREN_ASSERT(node_id_to_bone_id.find(channel.target_node) != node_id_to_bone_id.end());
+                    int bone_id = node_id_to_bone_id[channel.target_node];
+                    for (uint32_t i = 0; i < time_accessor.count; i++) {
+                        if (channel.target_path == "translation") {
+                            siren::KeyframeVec3 keyframe;
+                            memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
+                            memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::vec3)), sizeof(siren::vec3));
+                            animation_duration = siren::fmax(animation_duration, keyframe.time);
+                            model->bones[bone_id].keyframes[animation_id].positions.push_back(keyframe);
+                        } else if (channel.target_path == "rotation") {
+                            siren::KeyframeQuat keyframe;
+                            memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
+                            memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::quat)), sizeof(siren::quat));
+                            animation_duration = siren::fmax(animation_duration, keyframe.time);
+                            model->bones[bone_id].keyframes[animation_id].rotations.push_back(keyframe);
+                        } else if (channel.target_path == "scale") {
+                            siren::KeyframeVec3 keyframe;
+                            memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
+                            memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::vec3)), sizeof(siren::vec3));
+                            animation_duration = siren::fmax(animation_duration, keyframe.time);
+                            model->bones[bone_id].keyframes[animation_id].scales.push_back(keyframe);
+                        }
+                    } // End for each keyframe in channel
+                } // End for each animation channel
+
+                model->animations.push_back((siren::Animation) {
+                    .duration = animation_duration,
                 .ticks_per_second = 1.0
-            });
-            model->animation_id_lookup[animation.name] = (int)animation_id;
-        }
+                });
+                model->animation_id_lookup[animation.name] = (int)animation_id;
+            } // End for each animation
+        } // End if node has skin
     } // End while not node stack empty
 
     glBindVertexArray(0);
@@ -364,6 +418,7 @@ void siren::ModelTransform::animation_set(std::string name) {
     auto animation_id_it = model.animation_id_lookup.find(name);
     if (animation_id_it == model.animation_id_lookup.end()) {
         SIREN_WARN("called model_transform_set_animation() but animation '%s' does not exist on the model.", name.c_str());
+        animation = -1;
         return;
     }
 
@@ -373,6 +428,14 @@ void siren::ModelTransform::animation_set(std::string name) {
 
 void siren::ModelTransform::animation_update(float delta) {
     const Model& model = model_get(handle);
+
+    // If no animation, set to bind pose
+    if (animation == -1) {
+        for (uint32_t bone_index = 0; bone_index < bone_transform.size(); bone_index++) {
+            bone_transform[bone_index] = model.bones[bone_index].transform;
+        }
+        return;
+    }
 
     // Increment timer and check if animation finished
     animation_timer += delta;

@@ -28,7 +28,7 @@ struct RendererState {
 
     siren::Shader screen_shader;
     siren::Shader text_shader;
-    siren::Shader phong_shader;
+    siren::Shader model_shader;
 };
 static RendererState state;
 static bool initialized = false;
@@ -231,12 +231,12 @@ bool siren::renderer_init(RendererConfig config) {
     shader_set_uniform_vec2(state.text_shader, "screen_size", vec2((float)state.screen_size.x, (float)state.screen_size.y));
     shader_set_uniform_uint(state.text_shader, "atlas_texture", 0);
 
-    if (!shader_load(&state.phong_shader, "shader/phong.vert.glsl", "shader/phong.frag.glsl")) {
+    if (!shader_load(&state.model_shader, "shader/pbr.vert.glsl", "shader/pbr.frag.glsl")) {
         return false;
     }
     mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
-    shader_use(state.phong_shader);
-    shader_set_uniform_mat4(state.phong_shader, "projection", &projection);
+    shader_use(state.model_shader);
+    shader_set_uniform_mat4(state.model_shader, "projection", &projection);
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
@@ -335,54 +335,30 @@ void siren::renderer_render_texture(siren::Texture texture) {
 }
 
 
-void siren::renderer_render_cube(siren::Camera* camera, siren::Transform& transform, siren::Texture texture) {
-    mat4 model_matrix = transform_to_matrix(transform);
-
-    shader_use(state.phong_shader);
-
-    if (camera->is_dirty()) {
-        mat4 view = camera->get_view_matrix();
-        vec3 camera_position = camera->get_position();
-        shader_set_uniform_mat4(state.phong_shader, "view", &view);
-        shader_set_uniform_vec3(state.phong_shader, "view_position", camera_position);
-    }
-
-    shader_set_uniform_int(state.phong_shader, "u_texture", 0);
-    shader_set_uniform_mat4(state.phong_shader, "model", &model_matrix);
-    shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, 0.0f));
-    shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
-    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.027f);
-    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.0028f);
-
-    glBindVertexArray(state.cube_vao);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
 void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle model_handle, siren::ModelTransform& transform) {
     const Model& model = model_get(model_handle);
     mat4 model_matrix = transform_to_matrix(transform.root_transform);
 
-    shader_use(state.phong_shader);
+    shader_use(state.model_shader);
 
     if (camera->is_dirty()) {
         mat4 view = camera->get_view_matrix();
         vec3 camera_position = camera->get_position();
-        shader_set_uniform_mat4(state.phong_shader, "view", &view);
-        shader_set_uniform_vec3(state.phong_shader, "view_position", camera_position);
+        shader_set_uniform_mat4(state.model_shader, "view", &view);
+        shader_set_uniform_vec3(state.model_shader, "view_position", camera_position);
     }
 
-    shader_set_uniform_int(state.phong_shader, "material_texture", 0);
-    // shader_set_uniform_int(state.phong_shader, "material_emissive", 1);
-    shader_set_uniform_vec3(state.phong_shader, "point_light.position", vec3(-2.0f, 2.0f, -8.0f));
-    shader_set_uniform_float(state.phong_shader, "point_light.constant", 1.0f);
-    shader_set_uniform_float(state.phong_shader, "point_light.linear", 0.022f);
-    shader_set_uniform_float(state.phong_shader, "point_light.quadratic", 0.019f);
+    // TODO: move these to shader initialization so that we only define once
+    shader_set_uniform_int(state.model_shader, "material_albedo", 0);
+    shader_set_uniform_int(state.model_shader, "material_metallic_roughness", 1);
+    shader_set_uniform_int(state.model_shader, "material_normal", 2);
+    shader_set_uniform_int(state.model_shader, "material_emissive", 3);
+    shader_set_uniform_int(state.model_shader, "material_occlusion", 4);
+
+    shader_set_uniform_bool(state.model_shader, "material_use_albedo_map", true);
+    shader_set_uniform_vec3(state.model_shader, "light_positions[0]", vec3(-1.0f, 0.5f, 1.0f));
+    shader_set_uniform_vec3(state.model_shader, "light_colors[0]", vec3(1.0f));
+    shader_set_uniform_int(state.model_shader, "light_count", 1);
 
     // bone matrices
     mat4 bone_matrix[100];
@@ -396,16 +372,24 @@ void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle mode
         bone_matrix[bone_id] = parent_transform * transform.bone_transform[bone_id]; 
         bone_final_matrix[bone_id] = bone_matrix[bone_id] * model.bones[bone_id].inverse_bind_transform;
     }
-    shader_set_uniform_mat4(state.phong_shader, "bone_matrix", bone_final_matrix, model.bones.size());
+    shader_set_uniform_mat4(state.model_shader, "bone_matrix", bone_final_matrix, model.bones.size());
 
     for (uint32_t mesh_index = 0; mesh_index < model.meshes.size(); mesh_index++) {
         const Mesh& mesh = model.meshes[mesh_index];
 
-        shader_set_uniform_mat4(state.phong_shader, "model", &model_matrix);
+        shader_set_uniform_mat4(state.model_shader, "model", &model_matrix);
 
         // material uniforms
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, mesh.texture_diffuse);
+        glBindTexture(GL_TEXTURE_2D, mesh.material_albedo);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, mesh.material_metallic_roughness);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, mesh.material_normal);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, mesh.material_emissive);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, mesh.material_occlusion);
         // glActiveTexture(GL_TEXTURE1);
         // glBindTexture(GL_TEXTURE_2D, model->mesh[mesh_index].texture_emissive);
         

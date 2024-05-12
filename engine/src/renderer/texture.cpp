@@ -85,3 +85,32 @@ siren::Texture texture_load(const char* path) {
 
     return texture;
 }
+
+static std::unordered_map<uint32_t, siren::Texture> solidcolor_textures;
+
+siren::Texture siren::texture_acquire_solidcolor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    uint32_t color = (uint32_t(a) << 24) | (uint32_t(b) << 16) | (uint32_t(g) << 8) | uint32_t(r);
+
+    // Check if a solid color texture of this color has already been created
+    auto it = solidcolor_textures.find(color);
+    if (it != solidcolor_textures.end()) {
+        return it->second;
+    }
+
+    // Otherwise create a new one
+    uint32_t texture;
+    glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, GL_FALSE, GL_RGBA, GL_UNSIGNED_BYTE, &color);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    solidcolor_textures[color] = texture;
+    return texture;
+}
