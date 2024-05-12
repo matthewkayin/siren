@@ -4,16 +4,17 @@
 
 #include "camera.h"
 
+#include <vector>
+
 namespace siren {
-    struct PointLight {
+    struct Light {
         vec3 position;
         vec3 color;
-        float strength;
-        float radius;
     };
 
     struct Scene {
         Camera camera;
+        std::vector<Light> lights;
     };
 
     SIREN_API Scene scene_create();

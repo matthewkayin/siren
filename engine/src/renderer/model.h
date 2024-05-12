@@ -57,8 +57,8 @@ namespace siren {
     };
 
     struct Animation {
+        std::string name;
         float duration;
-        float ticks_per_second;
     };
 
     struct Model {
@@ -74,19 +74,27 @@ namespace siren {
     SIREN_API ModelHandle model_acquire(const char* path);
     const Model& model_get(ModelHandle handle);
 
-    struct ModelTransform {
-        static const int ANIMATION_NONE = -1;
+    class ModelTransform {
+        public:
+            static const int ANIMATION_NONE = -1;
 
-        SIREN_API ModelTransform();
-        SIREN_API ModelTransform(ModelHandle handle);
-        SIREN_API void animation_set(std::string name);
-        SIREN_API void animation_update(float delta);
+            SIREN_API ModelTransform();
+            SIREN_API ModelTransform(ModelHandle handle);
 
-        ModelHandle handle;
-        Transform root_transform;
-        std::vector<mat4> bone_transform;
+            SIREN_API const mat4& get_bone_transform(uint32_t index) const;
 
-        int animation;
-        float animation_timer;
+            SIREN_API std::string get_animation() const;
+            SIREN_API void set_animation(std::string name, bool loop = false);
+            SIREN_API void update_animation(float delta);
+
+            Transform root;
+        private:
+            ModelHandle handle;
+            std::vector<mat4> bone_transform;
+
+            int animation;
+            float animation_timer;
+            bool animation_playing;
+            bool animation_loop_on_finish;
     };
 }

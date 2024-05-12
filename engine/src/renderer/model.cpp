@@ -311,7 +311,7 @@ bool model_load(siren::Model* model, std::string path) {
                 model->bones.push_back((siren::Bone) {
                     .parent_id = -1,
                     .keyframes = std::vector<siren::Keyframes>(),
-                    .transform = siren::transform_to_matrix(transform),
+                    .transform = transform.to_mat4(),
                     .inverse_bind_transform = inverse_bind_transform
                 });
             } // End for each bone index
@@ -379,8 +379,8 @@ bool model_load(siren::Model* model, std::string path) {
                 } // End for each animation channel
 
                 model->animations.push_back((siren::Animation) {
+                    .name = animation.name,
                     .duration = animation_duration,
-                .ticks_per_second = 1.0
                 });
                 model->animation_id_lookup[animation.name] = (int)animation_id;
             } // End for each animation
@@ -401,7 +401,7 @@ siren::ModelTransform::ModelTransform() {
 
 siren::ModelTransform::ModelTransform(siren::ModelHandle handle) {
     this->handle = handle;
-    root_transform = transform_identity();
+    root = Transform::identity();
 
     const Model& model = model_get(handle);
     for (uint32_t bone_index = 0; bone_index < model.bones.size(); bone_index++) {
@@ -410,9 +410,20 @@ siren::ModelTransform::ModelTransform(siren::ModelHandle handle) {
 
     animation = ModelTransform::ANIMATION_NONE;
     animation_timer = 0.0f;
+    animation_loop_on_finish = false;
+    animation_playing = false;
 }
 
-void siren::ModelTransform::animation_set(std::string name) {
+const siren::mat4& siren::ModelTransform::get_bone_transform(uint32_t index) const {
+    return bone_transform[index];
+}
+
+std::string siren::ModelTransform::get_animation() const {
+    const Model& model = model_get(handle);
+    return model.animations[animation].name;
+}
+
+void siren::ModelTransform::set_animation(std::string name, bool loop) {
     const Model& model = model_get(handle);
 
     auto animation_id_it = model.animation_id_lookup.find(name);
@@ -424,10 +435,16 @@ void siren::ModelTransform::animation_set(std::string name) {
 
     animation = animation_id_it->second;
     animation_timer = 0.0f;
+    animation_loop_on_finish = loop;
+    animation_playing = true;
 }
 
-void siren::ModelTransform::animation_update(float delta) {
+void siren::ModelTransform::update_animation(float delta) {
     const Model& model = model_get(handle);
+
+    if (!animation_playing) {
+        return;
+    }
 
     // If no animation, set to bind pose
     if (animation == -1) {
@@ -440,6 +457,11 @@ void siren::ModelTransform::animation_update(float delta) {
     // Increment timer and check if animation finished
     animation_timer += delta;
     if (animation_timer > model.animations[animation].duration) {
+        if (!animation_loop_on_finish) {
+            animation_playing = false;
+            return;
+        }
+
         animation_timer -= model.animations[animation].duration;
     }
 
@@ -479,10 +501,10 @@ void siren::ModelTransform::animation_update(float delta) {
             }
         }
 
-        bone_transform[bone_index] = transform_to_matrix((Transform) {
+        bone_transform[bone_index] = ((Transform) {
             .position = bone_position,
             .rotation = bone_rotation,
             .scale = bone_scale
-        });
+        }).to_mat4();
     } // End for each bone
 }

@@ -337,7 +337,7 @@ void siren::renderer_render_texture(siren::Texture texture) {
 
 void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle model_handle, siren::ModelTransform& transform) {
     const Model& model = model_get(model_handle);
-    mat4 model_matrix = transform_to_matrix(transform.root_transform);
+    mat4 model_matrix = transform.root.to_mat4();
 
     shader_use(state.model_shader);
 
@@ -357,7 +357,7 @@ void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle mode
 
     shader_set_uniform_bool(state.model_shader, "material_use_albedo_map", true);
     shader_set_uniform_vec3(state.model_shader, "light_positions[0]", vec3(-1.0f, 0.5f, 1.0f));
-    shader_set_uniform_vec3(state.model_shader, "light_colors[0]", vec3(1.0f));
+    shader_set_uniform_vec3(state.model_shader, "light_colors[0]", vec3(25.0f));
     shader_set_uniform_int(state.model_shader, "light_count", 1);
 
     // bone matrices
@@ -369,7 +369,7 @@ void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle mode
     };
     for (int bone_id = 0; bone_id < model.bones.size(); bone_id++) {
         mat4 parent_transform = model.bones[bone_id].parent_id == -1 ? mat4(1.0f) : bone_matrix[model.bones[bone_id].parent_id];
-        bone_matrix[bone_id] = parent_transform * transform.bone_transform[bone_id]; 
+        bone_matrix[bone_id] = parent_transform * transform.get_bone_transform(bone_id); 
         bone_final_matrix[bone_id] = bone_matrix[bone_id] * model.bones[bone_id].inverse_bind_transform;
     }
     shader_set_uniform_mat4(state.model_shader, "bone_matrix", bone_final_matrix, model.bones.size());
