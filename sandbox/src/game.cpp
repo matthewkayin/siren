@@ -5,7 +5,7 @@
 #include <core/input.h>
 #include <renderer/font.h>
 #include <renderer/renderer.h>
-#include <renderer/camera.h>
+#include <scene/camera.h>
 #include <renderer/texture.h>
 #include <renderer/model.h>
 
@@ -83,7 +83,9 @@ bool game_update(float delta) {
 }
 
 bool game_render() {
+    siren::renderer_render_light(&gamestate.camera);
     siren::renderer_render_model(&gamestate.camera, gamestate.test, gamestate.transform);
+    siren::renderer_render_geometry(&gamestate.camera);
 
     char fps_text[16];
     sprintf(fps_text, "FPS: %u", siren::application_get_fps());

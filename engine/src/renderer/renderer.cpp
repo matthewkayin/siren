@@ -2,8 +2,9 @@
 
 #include "core/logger.h"
 #include "math/math.h"
-#include "renderer/shader.h"
-#include "renderer/font.h"
+#include "shader.h"
+#include "font.h"
+#include "geometry.h"
 
 #include <SDL2/SDL.h>
 #include <glad/glad.h>
@@ -29,7 +30,13 @@ struct RendererState {
     siren::Shader screen_shader;
     siren::Shader text_shader;
     siren::Shader model_shader;
+    siren::Shader geometry_shader;
+    siren::Shader light_shader;
+
+    siren::vec3 light_position;
+    siren::Geometry geometry;
 };
+
 static RendererState state;
 static bool initialized = false;
 
@@ -231,16 +238,42 @@ bool siren::renderer_init(RendererConfig config) {
     shader_set_uniform_vec2(state.text_shader, "screen_size", vec2((float)state.screen_size.x, (float)state.screen_size.y));
     shader_set_uniform_uint(state.text_shader, "atlas_texture", 0);
 
-    if (!shader_load(&state.model_shader, "shader/pbr.vert.glsl", "shader/pbr.frag.glsl")) {
+    if (!shader_load(&state.model_shader, "shader/model.vert.glsl", "shader/model.frag.glsl")) {
         return false;
     }
     mat4 projection = mat4::perspective(deg_to_rad(45.0f), (float)state.screen_size.x / (float)state.screen_size.y, 0.1f, 100.0f);
     shader_use(state.model_shader);
     shader_set_uniform_mat4(state.model_shader, "projection", &projection);
+    shader_set_uniform_int(state.model_shader, "material_albedo", 0);
+    shader_set_uniform_int(state.model_shader, "material_metallic_roughness", 1);
+    shader_set_uniform_int(state.model_shader, "material_normal", 2);
+    shader_set_uniform_int(state.model_shader, "material_emissive", 3);
+    shader_set_uniform_int(state.model_shader, "material_occlusion", 4);
+
+    if (!shader_load(&state.geometry_shader, "shader/geometry.vert.glsl", "shader/geometry.frag.glsl")) {
+        return false;
+    }
+    shader_use(state.geometry_shader);
+    shader_set_uniform_mat4(state.geometry_shader, "projection", &projection);
+    shader_set_uniform_int(state.geometry_shader, "material_albedo", 0);
+
+    if (!shader_load(&state.light_shader, "shader/light.vert.glsl", "shader/light.frag.glsl")) {
+        return false;
+    }
+    shader_use(state.light_shader);
+    shader_set_uniform_mat4(state.light_shader, "projection", &projection);
 
     SIREN_INFO("Renderer subsystem initialized: %s", glGetString(GL_VERSION));
     
     initialized = true;
+
+    std::vector<std::string> textures;
+    textures.push_back("texture/tile/white_wall_tile004f.png");
+    textures.push_back("texture/tile/white_wall_tile004a.png");
+    textures.push_back("texture/tile/white_wall_state.png");
+    state.geometry = geometry_create_cube(vec3(2.0f, 0.5f, 1.0f));
+    state.geometry.material_albedo = texture_array_create("test", textures);
+    state.light_position = vec3(-1.0f, 1.0f, 2.0f);
 
     return true;
 }
@@ -334,6 +367,23 @@ void siren::renderer_render_texture(siren::Texture texture) {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void siren::renderer_render_light(siren::Camera* camera) {
+    mat4 model = ((Transform) {
+        .position = state.light_position,
+        .rotation = quat(),
+        .scale = vec3(0.1f)
+    }).to_mat4();
+
+    shader_use(state.light_shader);
+
+    mat4 view = camera->get_view_matrix();
+    shader_set_uniform_mat4(state.light_shader, "model", &model);
+    shader_set_uniform_mat4(state.light_shader, "view", &view);
+
+    glBindVertexArray(state.cube_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+}
 
 void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle model_handle, siren::ModelTransform& transform) {
     const Model& model = model_get(model_handle);
@@ -341,22 +391,12 @@ void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle mode
 
     shader_use(state.model_shader);
 
-    if (camera->is_dirty()) {
-        mat4 view = camera->get_view_matrix();
-        vec3 camera_position = camera->get_position();
-        shader_set_uniform_mat4(state.model_shader, "view", &view);
-        shader_set_uniform_vec3(state.model_shader, "view_position", camera_position);
-    }
+    mat4 view = camera->get_view_matrix();
+    vec3 camera_position = camera->get_position();
+    shader_set_uniform_mat4(state.model_shader, "view", &view);
+    shader_set_uniform_vec3(state.model_shader, "view_position", camera_position);
 
-    // TODO: move these to shader initialization so that we only define once
-    shader_set_uniform_int(state.model_shader, "material_albedo", 0);
-    shader_set_uniform_int(state.model_shader, "material_metallic_roughness", 1);
-    shader_set_uniform_int(state.model_shader, "material_normal", 2);
-    shader_set_uniform_int(state.model_shader, "material_emissive", 3);
-    shader_set_uniform_int(state.model_shader, "material_occlusion", 4);
-
-    shader_set_uniform_bool(state.model_shader, "material_use_albedo_map", true);
-    shader_set_uniform_vec3(state.model_shader, "light_positions[0]", vec3(-1.0f, 0.5f, 1.0f));
+    shader_set_uniform_vec3(state.model_shader, "light_positions[0]", state.light_position);
     shader_set_uniform_vec3(state.model_shader, "light_colors[0]", vec3(25.0f));
     shader_set_uniform_int(state.model_shader, "light_count", 1);
 
@@ -375,11 +415,11 @@ void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle mode
     shader_set_uniform_mat4(state.model_shader, "bone_matrix", bone_final_matrix, model.bones.size());
 
     for (uint32_t mesh_index = 0; mesh_index < model.meshes.size(); mesh_index++) {
-        const Mesh& mesh = model.meshes[mesh_index];
+        const Model::Mesh& mesh = model.meshes[mesh_index];
 
         shader_set_uniform_mat4(state.model_shader, "model", &model_matrix);
 
-        // material uniforms
+        // material textures
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, mesh.material_albedo);
         glActiveTexture(GL_TEXTURE1);
@@ -396,6 +436,30 @@ void siren::renderer_render_model(siren::Camera* camera, siren::ModelHandle mode
         glBindVertexArray(mesh.vao);
         glDrawElements(GL_TRIANGLES, mesh.index_count, mesh.index_component_type, (char*)NULL + (mesh.index_offset));
     }
+
+    glBindVertexArray(0);
+}
+
+void siren::renderer_render_geometry(siren::Camera* camera) {
+    const Geometry& geometry = state.geometry;
+
+    shader_use(state.geometry_shader);
+    mat4 model = mat4(1.0f);
+    shader_set_uniform_mat4(state.geometry_shader, "model", &model);
+
+    mat4 view = camera->get_view_matrix();
+    vec3 camera_position = camera->get_position();
+    shader_set_uniform_mat4(state.geometry_shader, "view", &view);
+    shader_set_uniform_vec3(state.geometry_shader, "view_position", camera_position);
+
+    shader_set_uniform_vec3(state.geometry_shader, "light_positions[0]", state.light_position);
+    shader_set_uniform_vec3(state.geometry_shader, "light_colors[0]", vec3(25.0f));
+    shader_set_uniform_int(state.geometry_shader, "light_count", 1);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, geometry.material_albedo);
+    glBindVertexArray(geometry.vao);
+    glDrawArrays(GL_TRIANGLES, 0, geometry.vertex_count);
 
     glBindVertexArray(0);
 }

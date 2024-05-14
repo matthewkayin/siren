@@ -126,9 +126,6 @@ bool model_load(siren::Model* model, std::string path) {
         for (uint32_t primitive_index = 0; primitive_index < gltf_mesh.primitives.size(); primitive_index++) {
             // Setup the siren mesh
             SIREN_TRACE("Setting up the mesh for primitive %u...", primitive_index);
-            siren::Mesh mesh;
-            glGenVertexArrays(1, &mesh.vao);
-            glBindVertexArray(mesh.vao);
 
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[primitive_index];
             std::vector<siren::vec3> positions;
@@ -176,6 +173,11 @@ bool model_load(siren::Model* model, std::string path) {
                     continue;
                 }
             } // End for each primitive attribute
+
+            siren::Model::Mesh mesh;
+            glGenVertexArrays(1, &mesh.vao);
+            glBindVertexArray(mesh.vao);
+
             struct VertexData {
                 siren::vec3 position;
                 siren::vec3 normal;
@@ -183,6 +185,8 @@ bool model_load(siren::Model* model, std::string path) {
                 int bone_ids[4];
                 float bone_weights[4];
             };
+
+
             std::vector<VertexData> vertex_data;
             for (uint32_t i = 0; i < positions.size(); i++) {
                 vertex_data.push_back((VertexData) {
@@ -308,9 +312,9 @@ bool model_load(siren::Model* model, std::string path) {
                 siren::mat4 inverse_bind_transform;
                 memcpy(&inverse_bind_transform[0], &inverse_bind_buffer.data.at(0) + inverse_bind_buffer_view.byteOffset + (bone_index * sizeof(siren::mat4)), sizeof(siren::mat4));
 
-                model->bones.push_back((siren::Bone) {
+                model->bones.push_back((siren::Model::Bone) {
                     .parent_id = -1,
-                    .keyframes = std::vector<siren::Keyframes>(),
+                    .keyframes = std::vector<siren::Model::Keyframes>(),
                     .transform = transform.to_mat4(),
                     .inverse_bind_transform = inverse_bind_transform
                 });
@@ -335,7 +339,7 @@ bool model_load(siren::Model* model, std::string path) {
 
                 uint32_t animation_id = model->bones[0].keyframes.size();
                 for (uint32_t bone_index = 0; bone_index < model->bones.size(); bone_index++) {
-                    model->bones[bone_index].keyframes.push_back(siren::Keyframes());
+                    model->bones[bone_index].keyframes.push_back(siren::Model::Keyframes());
                 }
 
                 float animation_duration = 0.0f;
@@ -357,28 +361,28 @@ bool model_load(siren::Model* model, std::string path) {
                     int bone_id = node_id_to_bone_id[channel.target_node];
                     for (uint32_t i = 0; i < time_accessor.count; i++) {
                         if (channel.target_path == "translation") {
-                            siren::KeyframeVec3 keyframe;
+                            siren::Model::KeyframeVec3 keyframe;
                             memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
                             memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::vec3)), sizeof(siren::vec3));
-                            animation_duration = siren::fmax(animation_duration, keyframe.time);
+                            animation_duration = fmax(animation_duration, keyframe.time);
                             model->bones[bone_id].keyframes[animation_id].positions.push_back(keyframe);
                         } else if (channel.target_path == "rotation") {
-                            siren::KeyframeQuat keyframe;
+                            siren::Model::KeyframeQuat keyframe;
                             memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
                             memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::quat)), sizeof(siren::quat));
-                            animation_duration = siren::fmax(animation_duration, keyframe.time);
+                            animation_duration = fmax(animation_duration, keyframe.time);
                             model->bones[bone_id].keyframes[animation_id].rotations.push_back(keyframe);
                         } else if (channel.target_path == "scale") {
-                            siren::KeyframeVec3 keyframe;
+                            siren::Model::KeyframeVec3 keyframe;
                             memcpy(&keyframe.time, &time_buffer.data.at(0) + time_buffer_view.byteOffset + (i * sizeof(float)), sizeof(float));
                             memcpy(&keyframe.value, &value_buffer.data.at(0) + value_buffer_view.byteOffset + (i * sizeof(siren::vec3)), sizeof(siren::vec3));
-                            animation_duration = siren::fmax(animation_duration, keyframe.time);
+                            animation_duration = fmax(animation_duration, keyframe.time);
                             model->bones[bone_id].keyframes[animation_id].scales.push_back(keyframe);
                         }
                     } // End for each keyframe in channel
                 } // End for each animation channel
 
-                model->animations.push_back((siren::Animation) {
+                model->animations.push_back((siren::Model::Animation) {
                     .name = animation.name,
                     .duration = animation_duration,
                 });
@@ -467,7 +471,7 @@ void siren::ModelTransform::update_animation(float delta) {
 
     // Compute transforms for each bone
     for (uint32_t bone_index = 0; bone_index < bone_transform.size(); bone_index++) {
-        const Keyframes& bone_keyframes = model.bones[bone_index].keyframes[animation];
+        const Model::Keyframes& bone_keyframes = model.bones[bone_index].keyframes[animation];
 
         if (bone_keyframes.positions.size() == 0) {
             bone_transform[bone_index] = model.bones[bone_index].transform;

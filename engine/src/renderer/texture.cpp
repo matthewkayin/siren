@@ -15,6 +15,7 @@
 #include <cstdio>
 
 static std::unordered_map<std::string, siren::Texture> textures;
+static std::unordered_map<siren::Texture, std::vector<siren::TextureArrayInfo>> texture_array_info;
 
 siren::Texture texture_load(const char* path);
 
@@ -113,4 +114,69 @@ siren::Texture siren::texture_acquire_solidcolor(uint8_t r, uint8_t g, uint8_t b
 
     solidcolor_textures[color] = texture;
     return texture;
+}
+
+#include <string>
+#include <fstream>
+#include <unordered_map>
+#include <math.h>
+siren::Texture siren::texture_array_create(std::string name, const std::vector<std::string>& texture_paths) {
+    // Load all the image data first so that we can get the max width and height of a texture
+    std::vector<stbi_uc*> texture_data;
+    std::vector<TextureArrayInfo> texture_info;
+    int max_texture_width = 0;
+    int max_texture_height = 0;
+    for (uint32_t i = 0; i < texture_paths.size(); i++) {
+        std::string full_path = resource_get_base_path() + texture_paths[i];
+        SIREN_TRACE("Loading texture %s...", full_path.c_str());
+
+        int texture_width;
+        int texture_height;
+        int texture_component_count;
+
+        stbi_uc* data = stbi_load(full_path.c_str(), &texture_width, &texture_height, &texture_component_count, 0);
+        if (!data) {
+            SIREN_ERROR("Could not load texture %s.", full_path.c_str());
+            return 0;
+        }
+        max_texture_width = std::max(texture_width, max_texture_width);
+        max_texture_height = std::max(texture_height, max_texture_height);
+
+        texture_data.push_back(data);
+        texture_info.push_back((TextureArrayInfo) {
+            .size = ivec2(texture_width, texture_height)
+        });
+    }
+
+    // Create the texture array
+    siren::Texture texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, max_texture_width, max_texture_height, texture_paths.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    for (uint32_t i = 0; i < texture_data.size(); i++) {
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, texture_info[i].size.x, texture_info[i].size.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, texture_data[i]);
+        stbi_image_free(texture_data[i]);
+    }
+
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+
+    textures[name] = texture;
+    texture_array_info[texture] = texture_info;
+
+    SIREN_INFO("Texture array loaded successfully.");
+    return texture;
+}
+
+bool siren::texture_is_texture_array(siren::Texture texture) {
+    return texture_array_info.find(texture) != texture_array_info.end();
+}
+
+const std::vector<siren::TextureArrayInfo>& siren::texture_array_info_get(siren::Texture texture) {
+    return texture_array_info[texture];
 }

@@ -59,11 +59,13 @@ SIREN_API bool siren::application_create(siren::ApplicationConfig config) {
     // Init subsystems
     resource_set_base_path(config.resource_path);
     input_init();
-    renderer_init((RendererConfig) {
+    if(!renderer_init((RendererConfig) {
         .window_name = config.name,
         .screen_size = config.screen_size,
         .window_size = config.window_size
-    });
+    })) {
+        return false;
+    }
 
     if (!app.init()) {
         SIREN_ERROR("Application failed to initialize");

@@ -11,57 +11,57 @@
 #include "math/vector4.h"
 #include "math/matrix.h"
 #include "math/transform.h"
-#include "renderer/texture.h"
+#include "texture.h"
 
 #include <vector>
 #include <unordered_map>
 #include <string>
 
 namespace siren {
-    struct Mesh {
-        uint32_t vao;
-        uint32_t vbo;
-        uint32_t ebo;
-        uint32_t index_count;
-        uint32_t index_offset;
-        int index_component_type;
-
-        Texture material_albedo;
-        Texture material_metallic_roughness;
-        Texture material_normal;
-        Texture material_emissive;
-        Texture material_occlusion;
-    };
-
-    struct KeyframeVec3 {
-        vec3 value;
-        float time;
-    };
-
-    struct KeyframeQuat {
-        quat value;
-        float time;
-    };
-
-    struct Keyframes {
-        std::vector<KeyframeVec3> positions;
-        std::vector<KeyframeQuat> rotations;
-        std::vector<KeyframeVec3> scales;
-    };
-
-    struct Bone {
-        int parent_id;
-        std::vector<Keyframes> keyframes;
-        mat4 transform;
-        mat4 inverse_bind_transform;
-    };
-
-    struct Animation {
-        std::string name;
-        float duration;
-    };
-
     struct Model {
+        struct Mesh {
+            uint32_t vao;
+            uint32_t vbo;
+            uint32_t ebo;
+            uint32_t index_count;
+            uint32_t index_offset;
+            int index_component_type;
+
+            Texture material_albedo;
+            Texture material_metallic_roughness;
+            Texture material_normal;
+            Texture material_emissive;
+            Texture material_occlusion;
+        };
+
+        struct KeyframeVec3 {
+            vec3 value;
+            float time;
+        };
+
+        struct KeyframeQuat {
+            quat value;
+            float time;
+        };
+
+        struct Keyframes {
+            std::vector<KeyframeVec3> positions;
+            std::vector<KeyframeQuat> rotations;
+            std::vector<KeyframeVec3> scales;
+        };
+
+        struct Bone {
+            int parent_id;
+            std::vector<Keyframes> keyframes;
+            mat4 transform;
+            mat4 inverse_bind_transform;
+        };
+
+        struct Animation {
+            std::string name;
+            float duration;
+        };
+
         std::vector<Mesh> meshes;
         std::vector<Bone> bones;
         std::vector<Animation> animations;

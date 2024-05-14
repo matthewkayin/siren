@@ -8,8 +8,6 @@
 #include <fstream>
 #include <string>
 
-// TODO: make a lookup / hashtable to ensure shaders only get loaded once
-
 bool shader_compile(siren::Shader* id, GLenum shader_type, const char* path) {
     // determine full path
     std::string full_path = siren::resource_get_base_path() + std::string(path);
